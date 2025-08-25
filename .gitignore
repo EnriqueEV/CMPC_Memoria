@@ -1,3 +1,4 @@
 *.XLSX
 /data
 AVANC.md
+__pycache__/
