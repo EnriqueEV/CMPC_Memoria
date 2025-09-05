@@ -1,6 +1,7 @@
 import pandas as pd
 from pathlib import Path
 from config.constants import USER_ADDR_COLUMNS, AGR_USERS_COLUMNS, AGR_1251_COLUMNS
+from sklearn.preprocessing import MultiLabelBinarizer
 
 def load_data(file_type = ".csv"):
     data_folder = Path("data")
@@ -78,31 +79,78 @@ def merge_df(user_addr_df, agr_users_df, agr_1251_df):
     """Merge the three DataFrames on the USER_ID column."""
     role_column = 'Rol'
     if role_column in agr_users_df.columns:
-        # Group by Usuario and aggregate roles into a list
         roles_grouped = agr_users_df.groupby('Usuario')[role_column].apply(list).reset_index()
-        roles_grouped.rename(columns={role_column: 'Roles'}, inplace=True)
-        
-        print(f"\nRoles grouped by user:")
-        print(roles_grouped.head())
-        print(f"Shape: {roles_grouped.shape}")
-        
-        # Merge user_addr_df with the grouped roles
+        roles_grouped.rename(columns={role_column: 'Roles'}, inplace=True)   
         merged_df = pd.merge(user_addr_df, roles_grouped, on='Usuario', how='left')
-        
-        print(f"\nFinal merged DataFrame:")
-        print(merged_df.head())
-        print(f"Shape: {merged_df.shape}")
-        
-        # Show example of users with multiple roles
         users_with_multiple_roles = merged_df[merged_df['Roles'].apply(lambda x: len(x) > 1 if isinstance(x, list) else False)]
         if not users_with_multiple_roles.empty:
             print(f"\nUsers with multiple roles ({len(users_with_multiple_roles)}):")
             for idx, row in users_with_multiple_roles.head().iterrows():
                 print(f"User: {row['Usuario']}, Roles: {row['Roles']}")
-        
         return merged_df
     else:
         print(f"Role column '{role_column}' not found in agr_users_df")
         print(f"Available columns: {list(agr_users_df.columns)}")
         return None
     return merged_df
+
+
+def split_merge_df(merged_df):
+    """
+    Split the 'Roles' column into 'Rol' and 'Location' columns.
+    Example: 'ROL_NAME-XYZ' -> Rol: 'ROL_NAME', Location: 'XYZ'
+    """
+    rol_list = []
+    location_list = []
+    for idx, row in merged_df.iterrows():
+        roles = row['Roles']
+        temp_rol = []
+        temp_location = []
+        for rol in roles:
+            rol_name = rol.split('-')[0] if '_' in rol else None
+            location = rol.split('-')[-1] if '_' in rol else None
+            if location == None or rol_name == None:
+                continue
+            elif "514" in location or "504" in location:
+                temp_rol.append(rol_name)
+                if ":" in location:
+                    location = location.split(":")[-1]
+                temp_location.append(location)
+        rol_list.append(temp_rol)
+        location_list.append(temp_location)
+    merged_df['Rol'] = rol_list
+    merged_df['Location'] = location_list
+    merged_df = merged_df.drop(columns=['Roles'])
+    return merged_df
+
+def create_user_multihot_vectors(df, department_weight=1,function_weight=1, roleloc_weight=1, roles_weight=1):
+    # Cargar el DataFrame
+    # Convertir las columnas de string a lista
+    department_df = pd.get_dummies(df[['Departamento']])
+    function_df = pd.get_dummies(df[['Función']])
+
+    # 1. Generar los pares (rol, location) por índice
+    def build_roleloc_pairs(row):
+        return [f"{r}_{l}" for r, l in zip(row['Rol'], row['Location']) if pd.notnull(r) and pd.notnull(l)]
+    df['RoleLocPairs'] = df.apply(build_roleloc_pairs, axis=1)
+
+    # 2. Multi-hot para los pares (rol, location)
+    mlb_roleloc = MultiLabelBinarizer()
+    roleloc_multihot = mlb_roleloc.fit_transform(df['RoleLocPairs'])
+    roleloc_df = pd.DataFrame(roleloc_multihot, columns=[f"pair_{c}" for c in mlb_roleloc.classes_], index=df['Usuario'])
+
+    # 3. Multi-hot solo para los roles
+    mlb_roles = MultiLabelBinarizer()
+    roles_multihot = mlb_roles.fit_transform(df['Rol'])
+    roles_df = pd.DataFrame(roles_multihot, columns=[f"role_{c}" for c in mlb_roles.classes_], index=df['Usuario'])
+
+    print(f"Bits Departamento: {department_df.shape[1]}")
+    print(f"Bits Función: {function_df.shape[1]}")
+    print(f"Bits (Rol, Location): {roleloc_df.shape[1]}")
+    print(f"Bits Roles: {roles_df.shape[1]}")
+    print(f"Bits totales (sin Usuario): {department_df.shape[1] + function_df.shape[1] + roleloc_df.shape[1] + roles_df.shape[1]}")
+
+    # 4. Concatenar ambos multi-hot
+    final_multihot = pd.concat([df[['Usuario']],department_weight*department_df,function_weight*function_df, roleloc_weight*roleloc_df, roles_weight*roles_df], axis=1)
+
+    return final_multihot
