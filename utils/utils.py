@@ -123,9 +123,11 @@ def split_merge_df(merged_df):
     merged_df = merged_df.drop(columns=['Roles'])
     return merged_df
 
-def create_user_multihot_vectors(df, department_weight=1,function_weight=1, roleloc_weight=1, roles_weight=1):
-    # Cargar el DataFrame
-    # Convertir las columnas de string a lista
+def create_user_multihot_vectors(df, department_weight=1, function_weight=1, roleloc_weight=1, roles_weight=1):
+    # Asegura que Usuario sea el índice para todos los DataFrames
+    df = df.set_index('Usuario')
+
+    # One-hot encoding para Departamento y Función
     department_df = pd.get_dummies(df[['Departamento']])
     function_df = pd.get_dummies(df[['Función']])
 
@@ -137,12 +139,12 @@ def create_user_multihot_vectors(df, department_weight=1,function_weight=1, role
     # 2. Multi-hot para los pares (rol, location)
     mlb_roleloc = MultiLabelBinarizer()
     roleloc_multihot = mlb_roleloc.fit_transform(df['RoleLocPairs'])
-    roleloc_df = pd.DataFrame(roleloc_multihot, columns=[f"pair_{c}" for c in mlb_roleloc.classes_], index=df['Usuario'])
+    roleloc_df = pd.DataFrame(roleloc_multihot, columns=[f"pair_{c}" for c in mlb_roleloc.classes_], index=df.index)
 
     # 3. Multi-hot solo para los roles
     mlb_roles = MultiLabelBinarizer()
     roles_multihot = mlb_roles.fit_transform(df['Rol'])
-    roles_df = pd.DataFrame(roles_multihot, columns=[f"role_{c}" for c in mlb_roles.classes_], index=df['Usuario'])
+    roles_df = pd.DataFrame(roles_multihot, columns=[f"role_{c}" for c in mlb_roles.classes_], index=df.index)
 
     print(f"Bits Departamento: {department_df.shape[1]}")
     print(f"Bits Función: {function_df.shape[1]}")
@@ -150,7 +152,14 @@ def create_user_multihot_vectors(df, department_weight=1,function_weight=1, role
     print(f"Bits Roles: {roles_df.shape[1]}")
     print(f"Bits totales (sin Usuario): {department_df.shape[1] + function_df.shape[1] + roleloc_df.shape[1] + roles_df.shape[1]}")
 
-    # 4. Concatenar ambos multi-hot
-    final_multihot = pd.concat([df[['Usuario']],department_weight*department_df,function_weight*function_df, roleloc_weight*roleloc_df, roles_weight*roles_df], axis=1)
+    # Concatenar usando el mismo índice (Usuario)
+    final_multihot = pd.concat([
+        department_weight * department_df,
+        function_weight * function_df,
+        roleloc_weight * roleloc_df,
+        roles_weight * roles_df
+    ], axis=1)
 
+    print(f"Bits totales (con Usuario): {final_multihot.shape[1]}")
+    print(final_multihot.head())
     return final_multihot
