@@ -19,17 +19,17 @@ def convert_xlsx_to_csv():
     
     for xlsx_file in xlsx_files:
         try:
-            # Read the xlsx file
-            df = pd.read_excel(xlsx_file)
-            
             # Create csv filename (same name but with .csv extension)
             csv_filename = xlsx_file.with_suffix('.csv')
-            
+            # Verifica si el archivo csv ya existe
+            if csv_filename.exists():
+                print(f"El archivo {csv_filename.name} ya existe. Se omite la conversión.")
+                continue
+            # Read the xlsx file
+            df = pd.read_excel(xlsx_file)
             # Save as csv
             df.to_csv(csv_filename, index=False)
-            
             print(f"Converted: {xlsx_file.name} -> {csv_filename.name}")
-            
         except Exception as e:
             print(f"Error converting {xlsx_file.name}: {str(e)}")
     

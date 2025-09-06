@@ -1,7 +1,10 @@
 import pandas as pd
 from pathlib import Path
+
+from sklearn import neighbors
 from config.constants import USER_ADDR_COLUMNS, AGR_USERS_COLUMNS, AGR_1251_COLUMNS
 from sklearn.preprocessing import MultiLabelBinarizer
+from ast import literal_eval
 
 def load_data(file_type = ".csv"):
     data_folder = Path("data")
@@ -89,8 +92,7 @@ def merge_df(user_addr_df, agr_users_df, agr_1251_df):
                 print(f"User: {row['Usuario']}, Roles: {row['Roles']}")
         return merged_df
     else:
-        print(f"Role column '{role_column}' not found in agr_users_df")
-        print(f"Available columns: {list(agr_users_df.columns)}")
+
         return None
     return merged_df
 
@@ -146,11 +148,6 @@ def create_user_multihot_vectors(df, department_weight=1, function_weight=1, rol
     roles_multihot = mlb_roles.fit_transform(df['Rol'])
     roles_df = pd.DataFrame(roles_multihot, columns=[f"role_{c}" for c in mlb_roles.classes_], index=df.index)
 
-    print(f"Bits Departamento: {department_df.shape[1]}")
-    print(f"Bits Función: {function_df.shape[1]}")
-    print(f"Bits (Rol, Location): {roleloc_df.shape[1]}")
-    print(f"Bits Roles: {roles_df.shape[1]}")
-    print(f"Bits totales (sin Usuario): {department_df.shape[1] + function_df.shape[1] + roleloc_df.shape[1] + roles_df.shape[1]}")
 
     # Concatenar usando el mismo índice (Usuario)
     final_multihot = pd.concat([
@@ -160,6 +157,55 @@ def create_user_multihot_vectors(df, department_weight=1, function_weight=1, rol
         roles_weight * roles_df
     ], axis=1)
 
-    print(f"Bits totales (con Usuario): {final_multihot.shape[1]}")
-    print(final_multihot.head())
     return final_multihot
+
+
+def roles_found(sim_df, resumen_df, split_roles, fecha_min='2025-06-01', k=5, threshold=None):
+    # Asegura que la columna 'Rol' de split_roles es lista
+    split_roles['Rol'] = split_roles['Rol']
+    
+    # Filtra resumen_df por fecha
+    resumen_df = resumen_df[resumen_df['Fecha'] >= fecha_min]
+    
+    # Usuarios válidos: que estén en ambos
+    usuarios_validos = set(split_roles['Usuario']) & set(resumen_df['Usuario'])
+    
+    # Prepara un dict: usuario -> set(roles posibles)
+    roles_usuario = dict(zip(split_roles['Usuario'], split_roles['Rol']))
+    
+    total_roles = 0
+    roles_encontrados = 0
+    
+    for idx, row in sim_df.iterrows():
+        if idx not in usuarios_validos:
+            continue
+
+        # Roles asignados a este usuario (en resumen_df, desde fecha_min)
+        roles_asignados = set(resumen_df[resumen_df['Usuario'] == idx]['Rol'])
+        roles_asignados = {r.split("-")[0] for r in roles_asignados}
+        if not roles_asignados:
+            continue
+
+        # Usuarios similares (asume fila de sim_df es vector de similitud)
+        sim_scores = sim_df.loc[idx].drop(idx)
+        # Filtra por threshold si se especifica
+        if threshold is not None:
+            sim_scores = sim_scores[sim_scores >= threshold]
+        # Selecciona hasta k más similares (si hay suficientes)
+        if k != -1:
+            top_similar = sim_scores.sort_values(ascending=False).head(k)
+        else:
+            top_similar = sim_scores.sort_values(ascending=False)
+        # Junta todos los roles de los similares
+        roles_similares = set()
+        for sim_user in top_similar.index:
+            roles_similares.update(roles_usuario.get(sim_user, []))
+
+        # Para cada rol asignado, verifica si está en los roles de los similares
+        for rol in roles_asignados:
+            total_roles += 1
+            if rol in roles_similares:
+                roles_encontrados += 1
+    
+    porcentaje = (roles_encontrados / total_roles) * 100 if total_roles > 0 else 0
+    return total_roles, roles_encontrados, porcentaje
