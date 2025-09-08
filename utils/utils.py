@@ -37,15 +37,11 @@ def load_data(file_type = ".csv"):
 
             user_addr_df = pd.read_csv(file_path)
             
-            print(f"Reading AGR_USERS file: {agr_users_files[0]}")
             agr_users_df = pd.read_csv(agr_users_files[0])
-            print(f"Reading AGR_1251 file: {agr_1251_files[0]}")
             agr_1251_df = pd.read_csv(agr_1251_files[0])
         else:
             user_addr_df = pd.read_excel(file_path)
-            print(f"Reading AGR_USERS file: {agr_users_files[0]}")
             agr_users_df = pd.read_excel(agr_users_files[0])
-            print(f"Reading AGR_1251 file: {agr_1251_files[0]}")
             agr_1251_df = pd.read_excel(agr_1251_files[0])  
 
         #Check if the required columns are present and delete the not necessary columns
@@ -85,11 +81,7 @@ def merge_df(user_addr_df, agr_users_df, agr_1251_df):
         roles_grouped = agr_users_df.groupby('Usuario')[role_column].apply(list).reset_index()
         roles_grouped.rename(columns={role_column: 'Roles'}, inplace=True)   
         merged_df = pd.merge(user_addr_df, roles_grouped, on='Usuario', how='left')
-        users_with_multiple_roles = merged_df[merged_df['Roles'].apply(lambda x: len(x) > 1 if isinstance(x, list) else False)]
-        if not users_with_multiple_roles.empty:
-            print(f"\nUsers with multiple roles ({len(users_with_multiple_roles)}):")
-            for idx, row in users_with_multiple_roles.head().iterrows():
-                print(f"User: {row['Usuario']}, Roles: {row['Roles']}")
+
         return merged_df
     else:
 
@@ -175,6 +167,7 @@ def roles_found(sim_df, resumen_df, split_roles, fecha_min='2025-06-01', k=5, th
     
     total_roles = 0
     roles_encontrados = 0
+    roles_per_user = []
     
     for idx, row in sim_df.iterrows():
         if idx not in usuarios_validos:
@@ -199,13 +192,17 @@ def roles_found(sim_df, resumen_df, split_roles, fecha_min='2025-06-01', k=5, th
         # Junta todos los roles de los similares
         roles_similares = set()
         for sim_user in top_similar.index:
-            roles_similares.update(roles_usuario.get(sim_user, []))
+            top_list = roles_usuario.get(sim_user, [])
+            roles_similares.update(top_list)
 
         # Para cada rol asignado, verifica si está en los roles de los similares
+        roles_encontrados_user = 0
         for rol in roles_asignados:
             total_roles += 1
             if rol in roles_similares:
                 roles_encontrados += 1
-    
+                roles_encontrados_user += 1
+        roles_per_user.append((idx, len(roles_asignados), len(roles_similares), roles_encontrados_user))
+
     porcentaje = (roles_encontrados / total_roles) * 100 if total_roles > 0 else 0
-    return total_roles, roles_encontrados, porcentaje
+    return total_roles, roles_encontrados, porcentaje, roles_per_user

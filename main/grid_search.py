@@ -59,7 +59,7 @@ def grid_search():
     roleloc_cols = [col for col in base_uv_df.columns if col.startswith('pair_')]
     roles_cols = [col for col in base_uv_df.columns if col.startswith('role_')]
 
-    weight_combinations = range(1,10)
+    weight_combinations = [0, 0.1, 0.5, 1, 2, 5]
     neighbor_options = [10, 50, 100, -1]
 
     # Prepara todas las combinaciones de hiperparámetros
