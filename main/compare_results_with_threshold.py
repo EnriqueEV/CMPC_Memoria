@@ -15,10 +15,12 @@ if __name__ == "__main__":
 		avg = df[col].mean()
 		max_val = df[col].max()
 		min_val = df[col].min()
+		total = df[col].count()
 		print(f"Columna: {col}")
 		print(f"  Promedio: {avg}")
 		print(f"  Máximo: {max_val}")
-		print(f"  Mínimo: {min_val}\n")
+		print(f"  Mínimo: {min_val}")
+		print(f"  Total: {total}\n")
 
 	# Calcular diferencia porcentual de la media entre thresholds para R_S_ y R_E_
 	import re

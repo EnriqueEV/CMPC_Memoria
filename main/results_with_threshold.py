@@ -31,7 +31,6 @@ if __name__ == "__main__":
     sim_df = pd.DataFrame(sim_matrix, index=base_uv_df.index, columns=base_uv_df.index)
     result = ut.roles_found(sim_df, resumen_df, split_df, k=k, threshold=0.8)
     print(f"Base case (all weights 1): total_roles {result[0]}, found_roles {result[1]}, score {result[2]}")
-    print(result[3])
 
     # Prueba múltiples thresholds y guarda resultados en columnas separadas
     import numpy as np
@@ -59,4 +58,4 @@ if __name__ == "__main__":
         cols.append(f'R_S_{threshold:.2f}')
         cols.append(f'R_E_{threshold:.2f}')
     df_result = df_result[cols]
-    df_result.to_csv(f'data/result/result_{dep_weight}_{fun_weight}_{rolLoc_weight}_{role_weight}_{k}_thresh.csv', index=False)
+    df_result.to_csv(f'data/result/result_{dep_weight}_{fun_weight}_{rolLoc_weight}_{role_weight}_{k}_simple_run.csv', index=False)

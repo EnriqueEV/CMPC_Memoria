@@ -206,3 +206,5 @@ def roles_found(sim_df, resumen_df, split_roles, fecha_min='2025-06-01', k=5, th
 
     porcentaje = (roles_encontrados / total_roles) * 100 if total_roles > 0 else 0
     return total_roles, roles_encontrados, porcentaje, roles_per_user
+
+
