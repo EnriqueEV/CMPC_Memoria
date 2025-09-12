@@ -18,6 +18,7 @@ if __name__ == "__main__":
         exit()  
     merged_df = ut.merge_df(user_addr_df, agr_users_df, agr_1251_df)
     split_df = ut.split_merge_df(merged_df)
+    split_df.to_csv('data/processed/split_roles.csv', index=False)
     dep_weight = 0.1
     fun_weight = 0.5   
     rolLoc_weight = 0.1

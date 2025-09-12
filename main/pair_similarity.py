@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import utils.utils as ut
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
@@ -14,7 +18,7 @@ PCA_SCATTER = False
 GRAFO = False
 INTERACTIVE_PCA = False  # Nuevo flag para plotly
 INTERACTIVE_HEATMAP = False  # Nuevo flag para heatmap interactivo
-INTERACTIVE_GRAFO = False   # Nuevo flag para grafo interactivo
+INTERACTIVE_GRAFO = True   # Nuevo flag para grafo interactivo
 
 if HEATMAP:
 	import seaborn as sns
