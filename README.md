@@ -28,4 +28,9 @@ AGR_USERS.XLSX
 
 En el archivo /data/AGR_USERS_summary.csv se encuentra un resumen de los roles y el numero de usuarios que tiene cada rol
 
-Numero de valor de autorizaciones entre TSTCT y AGR_1251 no coincide, preguntar por esto
+Los archivos que se terminaron usando para la ejecución del programa son:
+
+- AGR_USERS.XLSX
+- USER_ADDR_IDAD3.XLSX
+
+

@@ -1,7 +1,3 @@
-
-
-
-# Permite importar utils.utils al ejecutar como script directo
 import ast
 import sys
 import os

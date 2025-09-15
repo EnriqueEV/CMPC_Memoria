@@ -9,7 +9,8 @@ import utils.utils as ut
 
 #Antes de empezar a ejecutar el codigo, es mejor pasar los archivos a formato CSV dado a que es mucho mas rapido la carga de este formato
 
-# En caso de que se quiera guardar los dataframes generados en el proceso (recordar crear carpeta processed en data)
+# En caso de que se quiera guardar los dataframes generados en el proceso, setear SAVE = True(recordar crear carpeta processed en data)
+SAVE = True
 
 def createUsersVector(save,department_weight=1, role_weight=1, area_weight=1, subarea_weight=1):
     user_addr_df, agr_users_df, agr_1251_df = ut.load_data(".csv")
@@ -20,7 +21,7 @@ def createUsersVector(save,department_weight=1, role_weight=1, area_weight=1, su
 
 
 
-    merged_df = ut.merge_df(user_addr_df, agr_users_df, agr_1251_df)
+    merged_df = ut.merge_df(user_addr_df, agr_users_df)
     #print(merged_df.head())
     split_df = ut.split_merge_df(merged_df)
     #print(split_df.head())
@@ -40,4 +41,4 @@ def createUsersVector(save,department_weight=1, role_weight=1, area_weight=1, su
 
 
 if __name__ == "__main__":
-    createUsersVector()
+    createUsersVector(SAVE)

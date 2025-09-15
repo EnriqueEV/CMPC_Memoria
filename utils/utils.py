@@ -1,4 +1,7 @@
+# --- MÉTRICAS DE EVALUACIÓN: PRECISION, RECALL, F1 ---
+
 import pandas as pd
+import numpy as np
 from pathlib import Path
 
 from sklearn import neighbors
@@ -74,7 +77,7 @@ def load_data(file_type = ".csv"):
         print(f"Error processing file: {str(e)}")
 
 
-def merge_df(user_addr_df, agr_users_df, agr_1251_df):
+def merge_df(user_addr_df, agr_users_df):
     """Merge the three DataFrames on the USER_ID column."""
     role_column = 'Rol'
     if role_column in agr_users_df.columns:
