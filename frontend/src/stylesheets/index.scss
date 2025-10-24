@@ -1,0 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap');
+
+@import './layout.scss';
+@import './login-page.scss';
+@import './home-page.scss';
+@import './new-analysis-page.scss';
+@import './analysis-detail-page.scss';
+@import './success-modal.scss';
+@import './tooltip.scss';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  font-family: 'Open Sans', sans-serif;
+  height: 100%;
+  background-color: #f5f5f5;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+#root {
+  height: 100%;
+}
+
+button {
+  cursor: pointer;
+  font-family: 'Open Sans', sans-serif;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
