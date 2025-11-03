@@ -9,8 +9,7 @@ from config.constants import USER_ADDR_COLUMNS, AGR_USERS_COLUMNS, AGR_1251_COLU
 from sklearn.preprocessing import MultiLabelBinarizer
 from ast import literal_eval
 
-def load_data(file_type = ".csv"):
-    data_folder = Path("data")
+def load_data(data_folder,file_type = ".csv"):
     
     if not data_folder.exists():
         print(f"Data folder '{data_folder}' not found!")
@@ -98,25 +97,19 @@ def split_merge_df(merged_df):
     Example: 'ROL_NAME-XYZ' -> Rol: 'ROL_NAME', Location: 'XYZ'
     """
     rol_list = []
-    location_list = []
     for idx, row in merged_df.iterrows():
         roles = row['Roles']
         temp_rol = []
-        temp_location = []
         for rol in roles:
             rol_name = rol.split('-')[0] if '_' in rol else None
-            location = rol.split('-')[-1] if '_' in rol else None
+            location = rol.split(':')[-1] if ':' in rol else None
             if location == None or rol_name == None:
                 continue
             elif "514" in location or "504" in location:
                 temp_rol.append(rol_name)
-                if ":" in location:
-                    location = location.split(":")[-1]
-                temp_location.append(location)
+
         rol_list.append(temp_rol)
-        location_list.append(temp_location)
     merged_df['Rol'] = rol_list
-    merged_df['Location'] = location_list
     merged_df = merged_df.drop(columns=['Roles'])
     return merged_df
 
@@ -128,15 +121,6 @@ def create_user_multihot_vectors(df, department_weight=1, function_weight=1, rol
     department_df = pd.get_dummies(df[['Departamento']])
     function_df = pd.get_dummies(df[['Función']])
 
-    # 1. Generar los pares (rol, location) por índice
-    def build_roleloc_pairs(row):
-        return [f"{r}_{l}" for r, l in zip(row['Rol'], row['Location']) if pd.notnull(r) and pd.notnull(l)]
-    df['RoleLocPairs'] = df.apply(build_roleloc_pairs, axis=1)
-
-    # 2. Multi-hot para los pares (rol, location)
-    mlb_roleloc = MultiLabelBinarizer()
-    roleloc_multihot = mlb_roleloc.fit_transform(df['RoleLocPairs'])
-    roleloc_df = pd.DataFrame(roleloc_multihot, columns=[f"pair_{c}" for c in mlb_roleloc.classes_], index=df.index)
 
     # 3. Multi-hot solo para los roles
     mlb_roles = MultiLabelBinarizer()
@@ -148,20 +132,42 @@ def create_user_multihot_vectors(df, department_weight=1, function_weight=1, rol
     final_multihot = pd.concat([
         department_weight * department_df,
         function_weight * function_df,
-        roleloc_weight * roleloc_df,
         roles_weight * roles_df
     ], axis=1)
 
     return final_multihot
 
 
-def roles_found(sim_df, resumen_df, split_roles, fecha_min='2025-06-01', k=5, threshold=None):
+def roles_found(sim_df, resumen_df, split_roles, fecha_min='2025-06-01', k=5, threshold=None, location_filter=True, debug_missing=True):
     # Asegura que la columna 'Rol' de split_roles es lista
     split_roles['Rol'] = split_roles['Rol']
     
     # Filtra resumen_df por fecha
+    print(f"Filas en resumen_df antes del filtro de fecha: {len(resumen_df)}")
     resumen_df = resumen_df[resumen_df['Fecha'] >= fecha_min]
-    
+    print(f"Filas en resumen_df después del filtro de fecha: {len(resumen_df)}")
+
+    # Filtro adicional opcional por location (similar a split_merge_df):
+    # Mantener solo filas cuyo 'Rol' contenga un sufijo (separado por '-') cuya parte final
+    # incluya '514' o '504'. Se imprime el número de filas antes y después.
+    print("-------------------------------------")
+    if location_filter:
+        before_rows = len(resumen_df)
+
+        def _valid_location(rol_str):
+            if not isinstance(rol_str, str):
+                return False
+            parts = rol_str.split(':')
+            if len(parts) <= 1:
+                return False
+            loc = parts[-1]
+            # Mismo criterio usado en split_merge_df (contener 514 o 504)
+            return ('514' in loc) or ('504' in loc)
+
+        resumen_df = resumen_df[resumen_df['Rol'].apply(_valid_location)]
+        after_rows = len(resumen_df)
+        print(f"[roles_found] Filas resumen_df antes filtro location: {before_rows} | después: {after_rows}")
+    print("-------------------------------------")
     # Usuarios válidos: que estén en ambos
     usuarios_validos = set(split_roles['Usuario']) & set(resumen_df['Usuario'])
     
@@ -171,34 +177,57 @@ def roles_found(sim_df, resumen_df, split_roles, fecha_min='2025-06-01', k=5, th
     total_roles = 0
     roles_encontrados = 0
     roles_per_user = []
-    
+
+    total_roles_asignados = 0  # suma de roles_asignados (colapsados) por usuario válido
+    count = 0  # usuarios iterados en sim_df (no necesariamente válidos)
+
+    # Estructuras para depuración
+    dropped_due_to_user = []  # usuarios totalmente excluidos por no estar en split_roles
+    collapsed_duplicates = []  # lista de (usuario, base_role, roles_originales) cuando >1 original colapsa
+
+    # Pre-calcular roles originales por usuario (solo usuarios presentes en resumen_df)
+    roles_por_usuario_full = resumen_df.groupby('Usuario')['Rol'].apply(list).to_dict()
+
     for idx, row in sim_df.iterrows():
+        count += 1
         if idx not in usuarios_validos:
+            # Usuario tiene similitudes pero no tiene datos válidos de roles en split_roles o resumen_df
+            if debug_missing and idx in roles_por_usuario_full:
+                dropped_due_to_user.append((idx, len(roles_por_usuario_full[idx])))
             continue
 
-        # Roles asignados a este usuario (en resumen_df, desde fecha_min)
-        roles_asignados = set(resumen_df[resumen_df['Usuario'] == idx]['Rol'])
-        roles_asignados = {r.split("-")[0] for r in roles_asignados}
-        if not roles_asignados:
+        originales = roles_por_usuario_full.get(idx, [])
+        if not originales:
             continue
 
-        # Usuarios similares (asume fila de sim_df es vector de similitud)
+        # Colapsar usando solo el primer segmento antes de '-' (lógica actual)
+        # Guardar mapa base -> lista originales para detectar cuáles se pierden
+        colapso_map = {}
+        for r_full in originales:
+            base = r_full.split('-')[0]
+            colapso_map.setdefault(base, []).append(r_full)
+        roles_asignados = set(colapso_map.keys())
+        if debug_missing:
+            for base, lista_roles in colapso_map.items():
+                if len(lista_roles) > 1:
+                    collapsed_duplicates.append((idx, base, lista_roles))
+
+        total_roles_asignados += len(roles_asignados)
+
+        # Usuarios similares (fila de sim_df es vector de similitud)
         sim_scores = sim_df.loc[idx].drop(idx)
-        # Filtra por threshold si se especifica
         if threshold is not None:
             sim_scores = sim_scores[sim_scores >= threshold]
-        # Selecciona hasta k más similares (si hay suficientes)
         if k != -1:
             top_similar = sim_scores.sort_values(ascending=False).head(k)
         else:
             top_similar = sim_scores.sort_values(ascending=False)
-        # Junta todos los roles de los similares
+
         roles_similares = set()
         for sim_user in top_similar.index:
             top_list = roles_usuario.get(sim_user, [])
             roles_similares.update(top_list)
 
-        # Para cada rol asignado, verifica si está en los roles de los similares
         roles_encontrados_user = 0
         for rol in roles_asignados:
             total_roles += 1
@@ -207,6 +236,28 @@ def roles_found(sim_df, resumen_df, split_roles, fecha_min='2025-06-01', k=5, th
                 roles_encontrados_user += 1
         roles_per_user.append((idx, len(roles_asignados), len(roles_similares), roles_encontrados_user))
 
+    print(f"Total roles asignados (sumado por usuario): {total_roles_asignados}")
+    print(f"Total usuarios analizados en sim_df (incluye no válidos): {count}")
+
+    if debug_missing:
+        print("==== DEBUG DIFERENCIAS ROLES ====")
+        total_filas_resumen = len(resumen_df)
+        diff = total_filas_resumen - total_roles_asignados
+        print(f"Filas en resumen_df (post filtros): {total_filas_resumen}")
+        print(f"Total roles colapsados sumados: {total_roles_asignados}")
+        print(f"Diferencia (filas - colapsados): {diff}")
+        if collapsed_duplicates:
+            print("-- Roles múltiples que colapsan al mismo base (usuario, base, lista_original) --")
+            for u, base, lista in collapsed_duplicates:
+                # Solo mostrar exceso, no saturar
+                print(f"Usuario {u} | base {base} | colapsa {len(lista)} roles: {lista}")
+        else:
+            print("No se detectaron colapsos múltiples por base.")
+        if dropped_due_to_user:
+            print("-- Usuarios excluidos por no ser válidos (usuario, cantidad_roles_originales) --")
+            for u, cant in dropped_due_to_user:
+                print(f"Usuario {u} excluido con {cant} roles originales")
+        print("==== FIN DEBUG ====")
     porcentaje = (roles_encontrados / total_roles) * 100 if total_roles > 0 else 0
     return total_roles, roles_encontrados, porcentaje, roles_per_user
 
