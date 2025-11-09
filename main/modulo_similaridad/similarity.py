@@ -16,8 +16,8 @@ class SimilarityCalculator:
         self.n_top = n_top
         self.threshold = threshold
         # Load and prepare data
-        user_addr_df, agr_users_df, agr_1251_df = ut.load_data(Path(data_folder),data_type)
-        if user_addr_df is None or agr_users_df is None or agr_1251_df is None:
+        user_addr_df, agr_users_df = ut.load_data(Path(data_folder),data_type)
+        if user_addr_df is None or agr_users_df is None:
             print("Error loading data.")
             return
 

@@ -5,7 +5,7 @@ import numpy as np
 from pathlib import Path
 
 from sklearn import neighbors
-from config.constants import USER_ADDR_COLUMNS, AGR_USERS_COLUMNS, AGR_1251_COLUMNS
+from config.constants import USER_ADDR_COLUMNS, AGR_USERS_COLUMNS
 from sklearn.preprocessing import MultiLabelBinarizer
 from ast import literal_eval
 
@@ -26,10 +26,7 @@ def load_data(data_folder,file_type = ".csv"):
         print("No AGR_USERS Excel file found!")
         return None, None, None
     
-    agr_1251_files = list(data_folder.glob("AGR_1251*"+file_type))
-    if not agr_1251_files:
-        print("No AGR_1251 Excel file found!")
-        return None, None, None
+
 
     try:
         # Read the Excel files
@@ -40,11 +37,9 @@ def load_data(data_folder,file_type = ".csv"):
             user_addr_df = pd.read_csv(file_path)
             
             agr_users_df = pd.read_csv(agr_users_files[0])
-            agr_1251_df = pd.read_csv(agr_1251_files[0])
         else:
             user_addr_df = pd.read_excel(file_path)
             agr_users_df = pd.read_excel(agr_users_files[0])
-            agr_1251_df = pd.read_excel(agr_1251_files[0])  
 
         #Check if the required columns are present and delete the not necessary columns
         
@@ -62,14 +57,9 @@ def load_data(data_folder,file_type = ".csv"):
         else:
             agr_users_df = agr_users_df[AGR_USERS_COLUMNS]
 
-        missing_columns = [col for col in AGR_1251_COLUMNS if col not in agr_1251_df.columns]
-        if missing_columns:
-            print(f"Missing columns in AGR_1251 file: {missing_columns}")
-            return None, None, None
-        else:
-            agr_1251_df = agr_1251_df[AGR_1251_COLUMNS]
+    
 
-        return user_addr_df, agr_users_df, agr_1251_df
+        return user_addr_df, agr_users_df
 
 
     except Exception as e:
