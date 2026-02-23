@@ -198,6 +198,10 @@ def get_custom_css() -> str:
     footer { visibility: hidden; }
     header { visibility: hidden; }
 
+    /* ── Hide sidebar collapse / expand buttons ─────────────────── */
+    [data-testid="stSidebarCollapseButton"] { display: none; }
+    [data-testid="stSidebarCollapsedControl"] { display: none; }
+
     /* ── Feedback radio horizontal ──────────────────────────────── */
     .feedback-row {
         display: flex;
