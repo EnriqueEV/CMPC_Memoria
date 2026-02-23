@@ -33,11 +33,7 @@ Los archivos que se terminaron usando para la ejecución del programa son:
 
 ---
 
-# CMPC – SAP Role Recommender
-
-Intelligent system for recommending SAP roles to users based on similarity to their colleagues, validated by a machine learning classifier (CatBoost/LightGBM). Includes a Streamlit web interface for running analyses, reviewing recommendations, and providing feedback to continuously improve the model.
-
----
+# GUI Implementation and ejecution
 
 ## Prerequisites
 
