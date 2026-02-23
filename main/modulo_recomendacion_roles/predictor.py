@@ -148,14 +148,17 @@ class RoleRecommendationPredictor:
         predictions = self.pipeline.predict(X)
         probabilities = self.pipeline.predict_proba(X)
         
-        # Add predictions to DataFrame
-        # Use correct column name: 'Recommended_Role'
+        # Add predictions to DataFrame — preserve similarity metadata columns
         output_cols = ['Usuario']
         if 'Recommended_Role' in features_df.columns:
             output_cols.append('Recommended_Role')
         elif 'Recomendation' in features_df.columns:
             output_cols.append('Recomendation')
-        
+        # Carry over Count, Avg_Similarity, Similar_Users if present
+        for extra in ['Count', 'Avg_Similarity', 'Similar_Users']:
+            if extra in features_df.columns:
+                output_cols.append(extra)
+
         result_df = features_df[output_cols].copy()
         result_df['Prediction'] = predictions
         result_df['Confidence'] = probabilities[:, 1]  # Probability of positive class

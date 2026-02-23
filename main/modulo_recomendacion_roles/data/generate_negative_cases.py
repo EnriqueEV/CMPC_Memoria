@@ -178,6 +178,78 @@ def generate_training_dataset_uniform(
 	return int((combined["ASIGNADO"] == 1).sum()), int((combined["ASIGNADO"] == 0).sum())
 
 
+def retrain_with_feedback(
+	feedback_training_csv: str | Path,
+	original_training_csv: str | Path,
+	model_output_path: str | Path,
+) -> dict:
+	"""
+	Retrain CatBoost classifier combining original training data with feedback data.
+
+	Args:
+		feedback_training_csv: CSV from export_all_feedback_as_training_data()
+		                       [DEPARTAMETNO, FUNCION, ROL, ASIGNADO]
+		original_training_csv: Original training pairs CSV (same format)
+		model_output_path:     Where to save the retrained .joblib model
+
+	Returns: dict with keys: status, n_feedback, n_original, n_total, model_path
+	"""
+	feedback_csv = Path(feedback_training_csv)
+	original_csv = Path(original_training_csv)
+	model_out = Path(model_output_path)
+
+	if not feedback_csv.exists():
+		return {"status": "error", "message": f"No se encontró {feedback_csv}"}
+
+	feedback_df = _read_csv_robust(feedback_csv)
+	if len(feedback_df) == 0:
+		return {
+			"status": "insufficient_data",
+			"message": "No hay feedback guardado aún.",
+			"n_feedback": 0,
+		}
+
+	original_df = _read_csv_robust(original_csv) if original_csv.exists() else pd.DataFrame()
+	combined = (
+		pd.concat([original_df, feedback_df], ignore_index=True)
+		if not original_df.empty
+		else feedback_df
+	)
+	combined = combined.drop_duplicates(subset=["DEPARTAMETNO", "FUNCION", "ROL", "ASIGNADO"])
+
+	features = ["DEPARTAMETNO", "FUNCION", "ROL"]
+	target = "ASIGNADO"
+	X = combined[features].fillna("").values.tolist()
+	y = combined[target].tolist()
+
+	try:
+		from catboost import CatBoostClassifier
+		import joblib
+
+		model = CatBoostClassifier(
+			iterations=300,
+			depth=6,
+			learning_rate=0.1,
+			cat_features=[0, 1, 2],
+			verbose=False,
+			random_seed=42,
+		)
+		model.fit(X, y)
+
+		model_out.parent.mkdir(parents=True, exist_ok=True)
+		joblib.dump(model, str(model_out))
+
+		return {
+			"status": "ok",
+			"n_feedback": len(feedback_df),
+			"n_original": len(original_df),
+			"n_total": len(combined),
+			"model_path": str(model_out),
+		}
+	except Exception as e:
+		return {"status": "error", "message": str(e)}
+
+
 if __name__ == "__main__": 
 	base = Path(__file__).parents[2]
 	default_in = base / "data" / "processed" / "split_roles.csv"

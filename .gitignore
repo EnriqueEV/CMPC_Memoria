@@ -1,6 +1,29 @@
-*.XLSX
-/data
-AVANC.md
+# Data files – never commit raw or processed data
+/data/**/*.csv
+/data/**/*.xlsx
+/data/**/*.XLSX
+/data/**/*.xls
+
+# Exported recommendation CSVs at project root
+recomendaciones_*.csv
+
+# Runtime-generated directories inside data/
+/data/uploads/
+/data/feedback/
+
+# Database
+database/*.db
+
+# Conda / virtual environments
+.conda/
+venv/
+env/
+
+# Python cache
 **/__pycache__/
-utils/__pycache__/utils.cpython-310.pyc
+*.pyc
+*.pyo
+
+# Misc
+AVANC.md
 /main/test.py

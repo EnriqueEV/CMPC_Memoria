@@ -1,0 +1,1304 @@
+\documentclass[11pt,letterpaper]{article}
+
+%% Paquetes esenciales
+\usepackage[english,spanish,es-tabla]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\graphicspath{{figuras/}}
+\usepackage{geometry}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{hyperref}
+\usepackage[inline]{enumitem}
+\usepackage{minted}
+\usepackage{xcolor}
+\usepackage{abstract}
+\usepackage{array}
+\usepackage{booktabs}
+%% Paquetes alternativos (si no se ocupan, se pueden borrar)
+% \usepackage{booktabs}
+% \usepackage{colortbl}
+% \usepackage{epstopdf}
+% \usepackage{epsfig}
+% \usepackage{multirow}
+% \usepackage{enumerate}
+% \usepackage{longtable}
+% \usepackage{float}
+% \usepackage{multicol}
+% \usepackage{booktabs}
+% \usepackage{wasysym}
+% \usepackage{wrapfig}
+% \usepackage{amsbsy}
+% \usepackage{flushend}
+% \usepackage{url}
+% \usepackage{listings}
+% \usepackage{caption} 
+% \usepackage{lipsum}
+% \usepackage{booktabs} 	% for much better looking tables
+\usepackage{array} 		% for better arrays (eg matrices) in maths
+% \usepackage{paralist} 	% very flexible & customizable lists (eg. enumerate/itemize, etc.)
+% \usepackage{subfigure} % make it possible to include more than one captioned figure/table in a single float
+\usepackage{lipsum}
+% \usepackage[section]{placeins}
+
+%% Definiciones
+% \setlength{\parindent}{0cm}
+\renewcommand\shorthandsspanish{}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\DeclareUnicodeCharacter{00B0}{\degree}
+\renewcommand{\baselinestretch}{1}
+\renewcommand{\listingscaption}{Código programa}
+\definecolor{LightGray}{gray}{0.9}
+\renewcommand{\abstractnamefont}{\normalfont\Large\bfseries}
+\renewcommand{\abstracttextfont}{\normalfont}
+\renewcommand{\absleftindent}{}
+\renewcommand{\absrightindent}{}
+
+
+%%% BIBLIOGRAPHY
+\usepackage[backend=biber, style=apa, maxcitenames=2]{biblatex}
+\addbibresource{referencias.bib}
+
+%%% PAGE DIMENSIONS
+\geometry{top=3cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+
+%%% DATE
+\usepackage{datetime}
+\newdateformat{monthyeardate}{\monthname[\THEMONTH], \THEYEAR}
+
+%% HYPERLINKS
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    linkcolor=black,
+    urlcolor=black}
+
+%------------------------------------------------------------------------------
+\begin{document}
+
+%% PORTADA
+\begin{titlepage}
+    \begin{figure}[H]
+        \centering
+        \vspace{-1.2cm}
+        \includegraphics[scale=0.55]{logo_universidad.png}\\
+        \vspace{5mm}
+    \end{figure}
+    
+    \begin{center}
+        
+        \vspace{5cm}
+        
+        {\Large \textbf{Detección de anomalías, vulnerabilidades y puntos de control en la gestión de accesos SAP}}\\
+        
+        \vspace{3cm}
+        \textsc{\date{}\today}\\
+        \textsc{Versión: 4}\\
+        {\Large{\textbf{Enrique Escalona, Javier Acuña}}} \\
+        \vspace{1.5cm}
+
+    \end{center}
+    
+    \clearpage
+    \parindent=0mm
+\end{titlepage}
+
+%% HOJA DE FIRMAS
+\tableofcontents
+\setcounter{tocdepth}{3}
+\cleardoublepage
+
+
+%% DOCUMENTO
+
+
+
+
+
+
+\section{Introducción}
+CMPC es una empresa chilena con presencia nacional e internacional, enfocada en el negocio forestal y papelero. Debido a su tamaño y complejidad operativa, esta empresa utiliza SAP (Systems, Applications, and Products in Data Processing) como plataforma para centralizar el gran flujo de información que genera en sus distintos procesos. 
+El uso de SAP requiere una rigurosa gestión de los accesos dentro de la plataforma, motivo por el cual existe un equipo dedicado a controlar los accesos de los distintos trabajadores dentro del sistema. Este equipo tiene la responsabilidad de asignar, modificar y eliminar roles de usuarios en SAP, donde cada rol contiene una serie de permisos que permiten a los empleados cumplir con sus funciones laborales. Es por este motivo que este departamento tiene que asegurarse de realizar la asignación de estos roles de manera correcta para así asegurar el funcionamiento correcto de la plataforma SAP.
+
+
+
+\subsection{Problema a resolver}
+En un entorno con miles de empleados como el de CMPC, es común que algunos trabajadores no cuentan con todos los roles necesarios para realizar sus funciones. Cuanto esto ocurre, deben enviar una solicitud al departamento de control de accesos para que se le asignen los permisos necesarios.
+Actualmente, este proceso se realiza de forma manual, lo que conlleva una alta carga operativa para el equipo, especialmente considerando la gran cantidad de solicitudes recibidas diariamente. Esta situación genera cuellos de botella lo que provoca que se retrase la habilitación a los usuarios. Por lo tanto, surge la necesidad de automatizar el proceso de asignación de roles con el objetivo de agilizar este proceso y reducir el numero de solicitudes que recibe el departamento.
+
+Dado que no se cuenta con acceso directo a la plataforma SAP ni al sistema de solicitudes, el problema se abordará mediante el análisis de los permisos de los usuarios a partir de la información proporcionada por la empresa. Este análisis se enfocará en identificar discrepancias entre los permisos asignados a los trabajadores, con el objetivo de anticipar posibles solicitudes futuras.
+
+
+\subsection{Acercamiento a la solución}
+
+Para abordar este problema, se dispone de datos de los usuarios pertenecientes a las sucursales de CMPC en Brasil. Esta información incluye el cargo de los trabajadores, los roles asignados y los permisos asociados a cada rol.
+
+A partir del análisis de estos datos, se buscará identificar casos en los que existan diferencias de permisos entre trabajadores que tienen el mismo cargo y pertenecen a la misma sucursal, con el objetivo de detectar posibles permisos faltantes.
+
+Una vez detectados estos permisos, se recomendará algún rol existente en el sistema que los incluya. Además, se espera recibir retroalimentación por parte del equipo de gestión de acceso respecto a las recomendaciones generadas, con el fin de ajustar el sistema de sugerencias en función de dicha retroalimentación y adaptarlo progresivamente a la lógica cambiante del negocio.
+\subsection{Estado del Arte y de la Técnica}
+
+\subsubsection{Principales Publicaciones y Enfoques Académicos}
+
+El control de acceso es una de las tecnologías fundamentales en la seguridad de los datos, ya que gestiona los permisos de los usuarios y previene que personas no autorizadas accedan a los recursos de la organización. Existen diversos modelos de control de acceso, entre los cuales el Role-Based Access Control (RBAC) es uno de los más utilizados por distintas organizaciones. A diferencia de otros modelos, RBAC asigna roles a los usuarios en lugar de permisos individuales; cada rol agrupa un conjunto específico de permisos, lo que facilita la administración del sistema.
+En el contexto de RBAC, gran parte de los trabajos en la literatura se enfocan en optimizar la configuración de roles. Dentro de esta línea, destacan los estudios relacionados con role mining, los cuales aplican técnicas de data mining para la creación automática de roles a partir de los datos existentes. Algunos de los estudios analizados se presentan a continuación:
+
+
+\begin{enumerate}
+    \item {"Role Mining with Probabilistic Models" (Frank et al., ACM TISSEC, 2013):\\}
+    Este trabajo seminal de investigadores de ETH Zurich redefine la minería de roles como un problema de inferencia estadística, alejándose de los enfoques puramente combinatorios o de compresión de matrices. Los autores proponen modelos generativos probabilísticos para aprender la configuración RBAC más probable a partir de la matriz de asignación usuario-permiso observada. El artículo introduce el uso de procesos de Dirichlet no paramétricos para modelar la asignación de roles, permitiendo que el algoritmo determine automáticamente el número óptimo de roles y capture la tendencia natural a crear roles grandes y estables en la organización.\\
+
+    El enfoque se basa en modelos generativos jerárquicos, donde la matriz de asignación usuario-permiso \( X \in \{0,1\}^{N \times D} \) es explicada por variables latentes que representan la pertenencia a roles y la asignación de permisos a cada rol. El modelo incorpora priores bayesianos, utilizando el proceso de Dirichlet para regular la creación de nuevos roles en función de la distribución observada de usuarios por rol. La función generativa se expresa mediante una combinación booleana de matrices binarias y la probabilidad de cada asignación se calcula marginalizando sobre las variables latentes.\\
+    
+    El modelo probabilístico no solo minimiza la diferencia entre la configuración RBAC inferida y la matriz de accesos real, sino que además proporciona estimaciones de confianza para cada asignación usuario-permiso. Esto permite generalizar de manera efectiva a usuarios no vistos durante el entrenamiento, superando en precisión y robustez a los métodos deterministas clásicos. El artículo introduce la métrica de error de generalización como estándar para evaluar la calidad de los algoritmos de minería de roles, demostrando que el enfoque probabilístico ofrece mejores resultados tanto en datasets sintéticos como reales.
+
+    \item{"An Approach for Hierarchical RBAC Reconfiguration With Minimal Perturbation" (Ning Pan, 2017 ):\\}
+    Este trabajos propone reconfigurar el sistema de roles a través del análisis de tres métricas que indican la calidad de los roles generados, además de evaluar la perturbación entre dos conjuntos de roles. Los resultados muestran que el método permite reconstruir el sistema de roles logrando una menor complejidad estructural y perturbación en comparación con otros enfoques presentes en la literatura.
+
+    \item{"Constraint-Aware Role Mining via Extended Boolean Matrix Decomposition" (Haibing Lu, 2012):\\}
+    En este trabajo se emplea la técnica de Boolean Matrix Decomposition para descubrir roles. Esta técnica se basa en descomponer la matriz binaria que representa las asignaciones usuario-permiso (UPA) en dos matrices: usuario-rol (UA) y permiso-rol (PA). Lo destacable de este enfoque es que incorpora las restricciones del negocio al momento de identificar nuevos roles, lo que mejora la viabilidad práctica de los resultados.
+
+    \item{"IRMAOC: an interpretable role mining algorithm based on overlapping clustering"(Yaqi Yang, 2025):\\}
+    En este estudio se propone la técnica Interpretable Role Mining Algorithm Based on Overlapping Clustering (IRMAOC). Este método se enfoca en generar roles interpretables, evaluando su calidad en función de la similitud entre los usuarios asignados a cada rol. Para estimar nuevos roles, IRMAOC utiliza el algoritmo LFM (Local Fitness Method), el cual realiza un clustering de usuarios basándose en su similitud, y luego genera roles a partir de estos grupos.
+\end{enumerate}
+
+
+
+\subsubsection{Retos y Soluciones Propuestas}
+Uno de los principales retos a abordar es que la mayoría de las técnicas disponibles en la literatura se enfocan en la creación de nuevos roles, y no en la asignación de roles ya existentes. Por ello, se propone modificar los enfoques tradicionales de role mining para que, en lugar de generar nuevos roles, utilicen el conjunto de roles existentes como base para asignarlos adecuadamente a los usuarios.
+
+\subsection{Referencias}
+
+\begin{thebibliography}{99}
+
+\bibitem{frank2013role}
+Frank, M., Streich, A. P., Basin, D., \& Buhmann, J. M. (2013). \textit{Role Mining with Probabilistic Models}. ACM Transactions on Information and System Security (TISSEC).\\
+\url{https://people.inf.ethz.ch/basin/pubs/tissec-rolemining2013.pdf}
+
+\bibitem{frank2009hybrid}
+N. Pan, L. Sun, L. -S. He and Z. -Q. Zhu, "An Approach for Hierarchical RBAC Reconfiguration With Minimal Perturbation," in IEEE Access, vol. 6, pp. 40389-40399, 2018, doi: 10.1109/ACCESS.2017.2782838. keywords: {Perturbation methods;Complexity theory;History;Access control;Business;Heuristic algorithms;RBAC;role mining;reconfiguration;hierarchy;perturbation},
+\url{https://ieeexplore.ieee.org/document/8194737}
+
+\bibitem{zhang2012evolving}
+H. Lu, J. Vaidya, V. Atluri and Y. Hong, "Constraint-Aware Role Mining via Extended Boolean Matrix Decomposition," in IEEE Transactions on Dependable and Secure Computing, vol. 9, no. 5, pp. 655-669, Sept.-Oct. 2012, doi: 10.1109/TDSC.2012.21.
+keywords: {Matrix decomposition;Authorization;Minimization;Organizations;Vectors;Clustering algorithms;RBAC;constraint-aware role mining;EBMD.},
+
+\\
+\url{https://ieeexplore.ieee.org/document/6143956}
+
+\bibitem{colantonio2009bound}
+Yang, Y., Li, J., Zhang, T. et al. IRMAOC: an interpretable role mining algorithm based on overlapping clustering. Cybersecurity 8, 54 (2025).\\
+\url{https://doi.org/10.1186/s42400-024-00348-z}
+
+\end{thebibliography}
+
+
+\section{Requisitos del sistema}
+\label{rf}
+
+\subsection{Requisitos Funcionales}
+
+
+\begin{itemize}
+    \item \textbf{RF1:} El sistema debe permitir subir archivo con datos SAP de un período específico.
+    \item \textbf{RF2:} El sistema debe generar una predicción de permisos, según falten permisos de usuarios SAP o no se hallen vigentes.
+    \item \textbf{RF3:} El sistema debe ser capaz de generar recomendaciones de roles a partir de los resultados de la predicción de permisos y utilizar el feedback entregado por el usuario para ajustar el resultado entregado.
+    \item \textbf{RF4:} El sistema debe proporcionar herramientas para visualizar las recomendaciones generadas, permitiendo al equipo ver las solicitudes junto con los roles sugeridos, así como identificar otros usuarios que podrían requerir dichos roles.
+\end{itemize}
+
+\subsection{Requisitos No Funcionales}
+
+
+\begin{itemize}
+    \item \textbf{RNF1: }El sistema debe de ser capaz de procesar y analizar grandes volúmenes de datos de manera eficiente.
+    \item \textbf{RNF2: }La interfaz de usuario debe de ser intuitiva y fácil de usar, permitiendo al equipo de gestión de acceso adquirir la información de forma rápida y sencilla.
+    \item \textbf{RNF3: }El sistema debe de ser reentrenable, para adaptarse a los cambios constantes en la lógica del negocio y evitar su obsolescencia.
+    \item \textbf{RNF4: } El sistema debe de garantizar la confidencialidad de la información, asegurando que solo el equipo de gestión de acceso pueda acceder a los datos proporcionados.
+    
+\end{itemize}
+
+\subsection{Requisitos Interfaces}
+
+
+\begin{table}[H]
+\centering
+\caption{Eventos externos}
+\label{tab:E_externos}
+\begin{tabular}{|>{\raggedright\arraybackslash}m{3cm}|
+                >{\raggedright\arraybackslash}m{3cm}|
+                >{\raggedright\arraybackslash}m{2cm}|
+                >{\raggedright\arraybackslash}m{3cm}|
+                >{\raggedright\arraybackslash}m{3cm}|}
+
+
+    \hline
+    Evento & Descripción & Iniciador &Parámetros &Respuesta \\
+    \hline
+    Ingreso de datos SAP      & Un miembro del equipo de gestión de accesos sube los datos a nuestro sistema. & Miembro del equipo de gestión de accesos & Datos pre-normalizados, información de permisos. & Rol o roles recomendados por equipo. \\
+     \hline
+    Visualización de la recomendación      & Un miembro del equipo de gestión de accesos puede revisar las recomendaciones. & Miembro del equipo de gestión de accesos & Ejecución del sistema & Recomendación de roles \\
+     \hline
+    Entrega de feedback tras una recomendación      & Un miembro del equipo de gestión de accesos genera feedback del resultado de la recomendación.  & Miembro del equipo de gestión de accesos & Feedback del usuario & Ajuste de la recomendación con el feedback. \\
+     \hline
+    
+\end{tabular}
+\end{table}
+
+\subsection{Requisitos de Ambiente}\label{r2.4}
+
+\subsubsection{Hardware de Desarrollo}
+\begin{itemize}
+    \item\textbf{PC (Computador de alto rendimiento):} Equipo con capacidad para manejar grandes volúmenes de datos. Idealmente debe contar con una GPU dedicada para acelerar el entrenamiento de modelos de machine learning.
+
+\end{itemize}
+
+\subsubsection{Software de Desarrollo}
+\begin{itemize}
+    \item \textbf{Python 3.X: }Lenguaje principal utilizado para la recolección, procesamiento de datos, entrenamiento y ejecución de los modelos de predicción.
+
+    \item
+      \textbf{Bibliotecas}:
+    
+      \begin{itemize}
+      \tightlist
+      \item
+        pandas: Para manipulación y análisis de datos.
+      \item
+        sklearn (scikit-learn): Para algoritmos de machine learning y
+        métricas.
+      \item
+        seaborn y matplotlib: Para visualización de datos y gráficos.
+      \item
+        scipy: Para funciones científicas y estadísticas.
+      \end{itemize}
+
+    \item \textbf{Git}: Sistema de control de versiones utilizado para gestionar el código fuente del proyecto.
+\end{itemize}
+
+\subsection{Perfiles de usuario}
+
+\begin{table}[H]  % El modificador [H] fuerza la posición
+\centering
+\caption{Perfiles de usuario}
+\label{tab:P_usuario}
+\begin{tabular}{|>{\raggedright\arraybackslash}m{2cm}|
+                >{\raggedright\arraybackslash}m{3cm}|
+                >{\raggedright\arraybackslash}m{3cm}|
+                >{\raggedright\arraybackslash}m{2cm}|
+                >{\raggedright\arraybackslash}m{3cm}|
+                >{\raggedright\arraybackslash}m{3cm}|}
+
+
+    \hline
+    Perfil & Socioeconómico y Cultural & Ocupacional &Etario &Características Físicas,
+Fisiológicas y
+Psicológicas &Otros\\
+     \hline
+     Equipo de gestión de acceso      & Nivel socioeconómico medio a alto, con formación académica profesional. Acceso completo a herramientas tecnológicas requeridas para la gestión de roles y accesos.  & Profesionales con conocimientos avanzados en el uso de la plataforma SAP y en la gestión de solicitudes de acceso. &25 a 50 años & Alta capacidad analítica y mentalidad orientada a la toma de decisiones basadas en los datos del usuario. &Disponen de cuentas SAP que les otorgan permisos de visualización y edición de roles. \\
+     \hline
+    
+\end{tabular}
+\end{table}
+
+\section{Planificación del Proyecto}
+
+\subsection{Objetivo general}
+Optimización, estandarización y automatización del proceso de gestión de accesos SAP en sociedades Brasileñas de CMPC.
+
+\subsection{Objetivos Específicos}
+Recomendación de roles a asignar a un equipo, que permita completar un perfil acotado al los cargos. Basadas en el análisis con técnicas de aprendizaje, que permitan predecir futuras necesidades de accesos. Asimismo, estandarización de roles entre usuarios del mismo cargo, permitiendo mitigar sesgos de funciones por cargo.
+
+\subsection{Actividades y Milestones}
+Avance y desarrollo de las actividades planificadas y documentadas en la bitácora.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figuras/Actividades1.jpg}
+    \caption{Actividades 1/2}
+    \label{fig:enter-label}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figuras/Actividades2.jpg}
+    \caption{Actividades 2/2}
+    \label{fig:enter-label}
+\end{figure}
+
+\subsection{Carta Gantt}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figuras/Gantt1.jpg}
+    \caption{Carta Gantt 1/3}
+    \label{fig:enter-label}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figuras/Gantt2.jpg}
+    \caption{Carta Gantt 2/3}
+    \label{fig:enter-label}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{figuras/Gantt3.jpg}
+    \caption{Carta Gantt 3/3}
+    \label{fig:enter-label}
+\end{figure}
+\section{Diseño de Arquitectura del Sistema}
+
+\subsection{Diagrama de Contexto}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figuras/Diagrama de contexto.png}
+    \caption{Diagrama de contexto del sistema.}
+    \label{fig:enter-label}
+\end{figure}
+
+\subsection{Diagrama de arquitectura}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{figuras/Diagrama_arquitectura_sistema.png}
+    \caption{Diagrama de arquitectura del sistema.}
+    \label{fig:enter-label}
+\end{figure}
+
+\subsection{Enumeración de Módulos}
+
+\begin{table}[H]  % El modificador [H] fuerza la posición
+\centering
+\caption{Módulos de la arquitectura del sistema}
+\label{tab:E_modulos}
+\begin{tabular}{|>{\raggedright\arraybackslash}m{5cm}|>{\raggedright\arraybackslash}m{8cm}|>{\centering\arraybackslash}m{2cm}|}
+    \hline
+    Módulo & Propósito & Sección \\
+    \hline
+    Procesador de datos      &  Módulo encargado de procesar y filtrar los archivos de entrada para agrupar la información de los trabajadores según su cargo y sucursal.       & 5.1 \\
+     \hline
+    Predicción de roles faltantes         & Módulo encargado de buscar discrepancia en los roles de los usuarios que trabajen en una misma sucursal y tengan un mismo cargo.         & 5.2       \\
+     \hline
+    Modelo de recomendación de roles         & Módulo encargado de identificar los roles que le corresponden a un cargo en específico. & 5.3       \\
+    \hline
+    
+    Interfaz de usuario& Módulo encargado de la visualización de las recomendaciones generadas, la subida de archivos para la ejecución del programa y el almacenamiento de la retroalimentación de los roles generados por el sistema.& 5.4       \\
+    \hline
+    Feedback de roles& Modulo encargado de utilizar la retroalimentación generada por el usuario para ajustar el modelo de recomendación de roles.& 5.5       \\
+    \hline
+\end{tabular}
+\end{table}
+
+\subsection{Matriz de Requisitos Funcionales y Módulos}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|}
+        \hline
+         & M1 & M2 & M3 & M4 & M5 \\
+         \hline
+         RF1&X& & &X& \\
+         \hline
+         RF2&&X& & & \\
+         \hline
+         RF3& & &X & &X\\
+         \hline
+         RF4& & & &X & \\
+         \hline
+
+ 
+    \end{tabular}
+    \caption{Matriz de Requisitos Funcionales y Módulos}
+    \label{tab:m_rf}
+\end{table}
+
+\section{Módulos}
+
+
+
+\subsection{Definición del Módulo: Procesador de datos}
+\begin{itemize}
+
+\item \textbf{Propósito:} El módulo Procesador de datos es el responsable de, a partir de los archivos de entrada, filtrar la información relevante de los trabajadores y agrupar los datos de estos según sus respectivos cargos y sucursales. 
+
+\item \textbf{Alcance:} Este es el intermediario entre la interfaz de usuario y el módulo de predicción de transacciones faltantes. 
+
+\item \textbf{Dependencias:}
+Depende de los archivos subidos por el equipo de gestión de acceso
+\item \textbf{Supuestos:} 
+Los archivos recibidos mantienen el mismo formato.
+    
+
+
+\item \textbf{Restricciones:} El módulo tiene que manejar los casos en los que falte algún archivo.
+
+\item \textbf{Estructura General:}
+\begin{itemize}
+    \item \textbf{Entradas:} Archivos con los datos de los trabajadores y con la información de roles y transacciones disponibles en el sistema SAP de la empresa.
+    \item \textbf{Ejecución:}
+    \begin{itemize}
+        \item Filtrar los archivos para obtener solamente los datos de los campos de interés.
+        \item Agrupar a los trabajadores según su cargo y sucursal.
+    \end{itemize}
+    \item \textbf{Salidas: } Información de los trabajadores dividida por sucursales y cargos.
+\end{itemize}
+\end{itemize}
+
+
+
+
+
+\subsection{Definición del Módulo: Predicción de roles faltantes}
+
+\begin{itemize}
+
+\item \textbf{Propósito:} Este módulo es el encargado de generar predicciones de posibles roles que le falten a un trabajador al compararlo con sus compañeros de equipo que tengan el mismo cargo.
+
+\item \textbf{Alcance:} Este es el intermediario entre el módulo Procesador de datos y el módulo de recomendación de roles.
+
+\item \textbf{Dependencias:}
+\begin{itemize}
+    \item \textbf{Procesador de datos:  }Depende de la salida generada por el módulo Procesador de datos.
+    \item \textbf{Módulo modelo de recomendación de roles:  } Tiene que enviar los roles faltantes al módulo recomendador de roles.
+\end{itemize}
+\item \textbf{Supuestos:} Se asume que los trabajadores, al tener el mismo cargo y al trabajar en la misma sucursal, deberían de tener los mismos privilegios.
+
+    
+
+
+\item \textbf{Restricciones:} 
+El módulo tiene que cumplir con un nivel de confianza aceptable al momento de realizar la predicción.
+\item \textbf{Estructura General:}
+\begin{itemize}
+    \item \textbf{Entradas:} información de los trabajadores dividida por sucursales y cargos.
+    \item \textbf{Ejecución:}
+    \begin{itemize}
+        \item Entrenar el modelo con los datos de entrada (esto se hace solamente una vez y con una gran cantidad de datos).
+        \item Utilizar el modelo para obtener una predicción usando los datos de entrada.
+        \item Filtrar predicciones que no cumplan con la confianza permitida.
+    \end{itemize}
+    \item \textbf{Salidas: }Enviar los roles detectados al módulo modelo de recomendación de roles.
+\end{itemize}
+\end{itemize}
+
+
+\subsection{Definición del Módulo: Modelo de recomendación de roles}
+
+\begin{itemize}
+
+\item \textbf{Propósito: Este módulo es el encargado de filtrar las recomendaciones generadas para garantizar que dichas recomendaciones se ajusten al cargo específico del trabajador.} .
+
+\item \textbf{Alcance:} Este es el intermediario entre el módulo de predicción de roles faltantes y el módulo de interfaz de usuario.
+
+\item \textbf{Dependencias:} Este módulo depende de la predicción generada por el módulo anterior.
+
+\item \textbf{Supuestos:} Se asume que los roles son los mismos para distintas sucursales.
+
+    
+
+
+\item \textbf{Restricciones:} 
+Los roles recomendados tienen que superar un nivel de confianza.
+\item \textbf{Estructura General:}
+\begin{itemize}
+    \item \textbf{Entradas:} Roles faltantes detectados por el módulo anterior.
+    \item \textbf{Ejecución:}
+    \begin{itemize}
+        \item Entrenar el modelo con los datos de entrada (esto se hace solamente una vez y con una gran cantidad de datos).
+        \item Utilizar el modelo para obtener los roles recomendados que sí corresponden al cargo específico del trabajador.
+    \end{itemize}
+    \item \textbf{Salidas: }Enviar los roles recomendados al modulo de interfaz de usuario.
+\end{itemize}
+\end{itemize}
+
+
+
+\subsection{Definición del Módulo: Interfaz de usuario}
+
+\begin{itemize}
+
+\item \textbf{Propósito:} Este módulo es el encargado de generar una interfaz que permita que el equipo de gestión de accesos pueda visualizar y evaluar la información generada por el modelo de recomendación y, además, le permite subir los archivos de los trabajadores para generar nuevas recomendaciones.
+
+\item \textbf{Alcance:} Este módulo se encarga de mostrar la respuesta generada por el módulo de recomendación de roles. Además, es responsable de enviar los archivos generados y la retroalimentación correspondiente a los módulos Procesador de Datos y Feedback de Roles, respectivamente.
+
+\item \textbf{Dependencias:}
+\begin{itemize}
+    \item \textbf{Módulo modelo de recomendación de roles: } Depende de las recomendaciones generadas por este módulo.
+    \item \textbf{Módulo Procesador de datos:} Tiene que enviar los archivos subidos por el equipo de gestión de acceso a este modulo.
+    \item \textbf{Módulo Feedback de roles: } Tiene que enviar el feedback a este módulo. 
+\end{itemize}
+
+\item \textbf{Supuestos:} Se asume una conexión a internet estable para la visualización de la interfaz.
+    
+
+
+\item \textbf{Restricciones:} Se requiere de un sistema que verifique que el usuario que intente ingresar a la interfaz pertenezca el equipo de gestión de acceso.
+    
+
+\item \textbf{Estructura General:}
+\begin{itemize}
+    \item \textbf{Entradas:} Recomendaciones de roles.
+    \item \textbf{Ejecución:} Proporcionar las visualizaciones.
+        
+    \item \textbf{Salidas: } Respuesta a las solicitudes del usuario.
+\end{itemize}
+\end{itemize}
+
+
+\subsection{Definición del Módulo: Feedback de roles}
+
+\begin{itemize}
+
+\item \textbf{Propósito:} Este módulo es el encargado de entrenar al modelo de recomendación de roles con el feedback que dio el equipo de gestión de acceso a partir de las recomendaciones generadas anteriormente.
+
+\item \textbf{Alcance:} Este módulo tiene únicamente conexión con el módulo interfaz de usuario.
+
+\item \textbf{Dependencias:}
+Este módulo depende de la retroalimentación generada en la interfaz de usuario por el equipo de gestión de acceso a partir de los roles recomendados. 
+
+\item \textbf{Supuestos:} El tiempo transcurrido entre la recepción del feedback y el posterior entrenamiento del modelo es lo suficientemente corto como para que la retroalimentación siga siendo válida y no quede obsoleta.
+    
+
+
+\item \textbf{Restricciones:} El feedback dado por el usuario es solamente si es que el rol recomendado fue útil o no.
+    
+
+\item \textbf{Estructura General:}
+\begin{itemize}
+    \item \textbf{Entradas:} Feedback del usuario.
+    \item \textbf{Ejecución:} Acumular feedback hasta que se tenga lo suficiente para realizar una iteración de entrenamiento en el modelo recomendador de roles.
+        
+    \item \textbf{Salidas: } Modelo recomendador de roles ajustado a las preferencias del equipo de gestión de acceso.
+\end{itemize}
+\end{itemize}
+
+\section{Diseño de Interfaces}
+Las siguientes pantallas pretender mostrar como será la idea general de nuestra UI, la cual se espera sea similar y que sea puesta a prueba con el equipo de gestión de accesos.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figuras/GUI-Bienvenida.jpg}
+    \caption{Página de bienvenida.}
+    \label{fig:welcome-gui}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figuras/GUI-Home.jpg}
+    \caption{Página home.}
+    \label{fig:home-gui}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figuras/GUI-nuevo-analisis.jpg}
+    \caption{Página para crear un nuevo análisis.}
+    \label{fig:create-analysis-gui}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{figuras/GUI-detalle-analisis.jpg}
+    \caption{Página para editar análisis.}
+    \label{fig:analysis-edit-gui}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.67\linewidth]{figuras/GUI-pop-up-exitoso.jpg}
+    \caption{Ventana flotante de análisis guardado.}
+    \label{fig:result-popad-gui}
+\end{figure}
+
+
+\hypertarget{prototipo}{%
+\section{Prototipo}\label{prototipo}}
+
+\hypertarget{marco-general}{%
+\subsection{Marco general}\label{marco-general}}
+
+El presente proyecto se enfoca en el desarrollo de una aplicación web
+cuyo propósito es ofrecer un sistema que permita al equipo de gestión de
+accesos realizar un análisis detallado del estado actual de la empresa,
+con el objetivo de identificar posibles asignaciones de permisos que los
+trabajadores puedan necesitar. Esta tarea se llevará a cabo estimando la
+similitud entre los trabajadores de la empresa, con el fin de detectar
+qué roles le faltan a un trabajador basándose en sus compañeros más
+parecidos. Posteriormente, todos estos roles candidatos generados por el
+análisis deberán ser clasificados para determinar cuáles de ellos
+constituyen recomendaciones útiles, que finalmente serán presentadas a
+través de una interfaz web.
+
+Un aspecto clave del proyecto es la funcionalidad de poder ajustar las
+recomendaciones generadas. Esto se realizará utilizando el feedback
+proporcionado por el equipo de gestión de accesos, para determinar qué
+tipo de recomendaciones resultan ser más útiles y cuáles no.
+
+\hypertarget{hitos-principales-del-proyecto}{%
+\subsubsection{Hitos principales del
+proyecto}\label{hitos-principales-del-proyecto}}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Definición de la problemática}: El equipo identificó un problema
+  relacionado con la elevada cantidad de solicitudes de asignación de
+  permisos que recibía el equipo de gestión de accesos. Esto generó un
+  enfoque centrado en la predicción de futuras solicitudes, con el
+  objetivo de asignar roles antes de que los trabajadores tengan la
+  necesidad de solicitarlos.
+\item
+  \textbf{Investigación y análisis de la información proporcionada}: Se realizó
+  un estudio sobre los datos proporcionados por la empresa para
+  determinar la mejor forma de abordar la problemática encontrada. Este
+  trabajo se llevó a cabo en conjunto con la contraparte, que nos brindó
+  la capacitación necesaria para comprender qué representaba cada uno de
+  los datos.
+\item
+  \textbf{Procesamiento de datos}: Se realizó un filtrado de la información para
+  quedarnos únicamente con la información relevante de los trabajadores.
+\item
+  \textbf{Reducción de dimensionalidad de las características de los
+  trabajadores}: Se aplicó Análisis de Componentes Principales (PCA)
+  sobre la representación dispersa de las características categóricas de
+  los trabajadores, para obtener una representación compacta que
+  preserve la mayor varianza posible.
+\item
+  \textbf{Cálculo de la similitud de los trabajadores}: A partir de los
+  componentes principales obtenidos, se calculó la similitud de manera
+  vectorial entre los trabajadores.
+\item
+  \textbf{Generación de posibles roles a asignar}: Se utilizó la similitud entre
+  los trabajadores para poder generar múltiples candidatos de roles a
+  asignar, basándose en los usuarios más parecidos.
+\item
+  \textbf{Validación de roles generados por la similitud entre trabajadores}: Se
+  utilizó datos de asignaciones realizadas por el equipo de gestión de
+  accesos para comprobar si estas se encuentran dentro de los candidatos
+  generados, validando así la calidad de los resultados.
+\item
+  \textbf{Entrenamiento del clasificador de roles}: Se entrenó un modelo de
+  clasificación utilizando la información de roles ya asignados a los
+  trabajadores y el feedback del equipo, con el objetivo de priorizar y
+  filtrar recomendaciones específicas para cada cargo.
+\item
+  \textbf{Validación de candidatos y clasificador}: Se evaluó si los candidatos
+  filtrados por el clasificador mejoran la calidad respecto de los
+  candidatos sin filtrar, priorizando roles más significativos y
+  pertinentes para cada cargo.
+\item
+  \textbf{Desarrollo del prototipo}: Se implementó un prototipo de la aplicación
+  web, que permite visualizar de manera interactiva los roles
+  recomendados.
+\end{enumerate}
+
+\hypertarget{revisiuxf3n-de-requerimientos}{%
+\subsubsection{Revisión de
+requerimientos}\label{revisiuxf3n-de-requerimientos}}
+
+En la sección \autoref{rf} del presente informe, se detallan los requisitos
+funcionales y no funcionales.
+
+A continuación, se presentará la revisión de cada uno de ellos en base a
+lo desarrollado por el equipo
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{RF1}: El sistema actual permite la subida de archivos con los
+  datos extraídos de la plataforma SAP. El formato de estos puede ser
+  \emph{.xlsx} o \emph{.csv}.
+\item
+  \textbf{RF2}: El sistema actual permite generar una predicción amplia
+  de distintos posibles permisos que el trabajador necesite en base a
+  otros usuarios similares.
+\item
+  \textbf{RF3}: El sistema actual permite clasificar los múltiples
+  posibles roles a asignar para determinar cuáles de estos deben ser
+  recomendados o no, incluyendo la funcionalidad de que, a partir del
+  feedback proporcionado, se vaya ajustando esta clasificación para
+  generar mejores recomendaciones.
+\item
+  \textbf{RF4}: El sistema cuenta con una interfaz intuitiva que permite
+  la visualización de las recomendaciones.
+\item
+  \textbf{Requisitos no funcionales}: Para los requisitos no
+  funcionales, el sistema fue desarrollado para cumplir cada uno de
+  ellos, permitiendo el análisis de grandes volúmenes de datos y dando
+  la opción de poder reentrenar el sistema, todo esto a través de una
+  interfaz intuitiva y segura.
+\end{itemize}
+
+\hypertarget{entorno-de-soporte-y-desarrollo}{%
+\subsubsection{Entorno de Soporte y
+Desarrollo}\label{entorno-de-soporte-y-desarrollo}}
+
+El prototipo desarrollado utiliza las distintas herramientas y
+tecnologías mencionadas en la sección \autoref{r2.4}.
+
+\hypertarget{revisiuxf3n-del-prototipo}{%
+\subsection{Revisión del Prototipo}\label{revisiuxf3n-del-prototipo}}
+
+El prototipo desarrollado permite generar recomendaciones de roles que los trabajadores podrían necesitar, combinando un análisis de similitud entre trabajadores calculado sobre una representación de menor dimensionalidad obtenida mediante PCA y un filtrado posterior mediante un clasificador entrenado para priorizar roles pertinentes al cargo específico del trabajador.
+
+Los métodos incorporados fueron comparados y validados frente a alternativas disponibles para este tipo de datos categóricos y dispersos, seleccionando aquellas que ofrecieron mejor desempeño y estabilidad. La validación se realizó principalmente contrastando las recomendaciones con asignaciones efectuadas por el equipo de gestión de accesos con posterioridad a la fecha de corte de los datos iniciales, complementadas con el feedback del equipo para ajustar el modelo y mejorar la calidad de los resultados.
+
+\hypertarget{contexto-general-del-prototipo}{%
+\subsubsection{Contexto general del
+prototipo}\label{contexto-general-del-prototipo}}
+
+El prototipo desarrollado tiene como objetivo principal reducir las
+solicitudes que recibe el equipo de gestión de accesos SAP de la empresa
+CMPC. Una de las formas de solucionar esta problemática es anticiparse a
+estas solicitudes. Para ello, el sistema utiliza datos extraídos
+directamente de la plataforma SAP de la empresa, lo que permite
+identificar posibles permisos a asignar que los trabajadores puedan
+necesitar.
+
+El sistema proporciona al equipo de gestión de accesos la funcionalidad
+de poder ingresar los datos de la plataforma SAP para poder realizar un
+análisis exhaustivo. A través de una interfaz interactiva, los miembros
+del equipo pueden ver las recomendaciones generadas para los distintos
+trabajadores de la empresa y, adicionalmente, evaluar cada una de ellas
+con el fin de mejorar el funcionamiento general de la aplicación.
+
+Esta implementación permitirá que se puedan tomar decisiones de manera
+ágil para asignar permisos a los usuarios, dándole al equipo la
+posibilidad de anticiparse a las múltiples solicitudes de los
+trabajadores de la empresa.
+
+\hypertarget{esquema-general-de-componentes-del-prototipo}{%
+\subsubsection{Esquema general de Componentes del
+Prototipo}\label{esquema-general-de-componentes-del-prototipo}}
+
+A continuación, se presentan los componentes presentes dentro del
+prototipo desarrollado:
+
+\begin{itemize}
+\item
+  \textbf{Recomendación de Roles Potenciales basada en Similitud de Trabajadores:}
+  Componente central del sistema que identifica roles candidatos mediante el análisis
+  de similitud entre trabajadores con características comparables.
+\item
+  \textbf{Filtrado de recomendaciones por usuario:}
+  Sistema clasificador que valida y prioriza los roles sugeridos según su pertinencia
+  con el cargo específico del trabajador.
+\item
+  \textbf{Interfaz de Usuario Web:}
+  Aplicación web desarrollada en React que permite al equipo de Gestión de Acceso
+  interactuar con el sistema de forma intuitiva. Incluye funcionalidades para crear
+  nuevos análisis, visualizar recomendaciones y gestionar el historial de análisis
+  realizados.
+\item
+
+\hypertarget{descripciuxf3n-de-componentes}{%
+\subsubsection{Descripción de
+componentes}\label{descripciuxf3n-de-componentes}}
+
+\textbf{Recomendación de Roles Potenciales basada en Similitud de Trabajadores}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{General}: Permite recomendar roles a un trabajador específico,
+  basándose en los roles que ya poseen otros empleados con perfiles
+  similares.
+\item
+  \textbf{Implementación}: Se utiliza PCA sobre la representación
+  dispersa de los atributos categóricos (generada por one-hot encoding)
+  para reducir la dimensionalidad. Posteriormente, se calcula la
+  similitud entre los trabajadores en este nuevo espacio compacto. Los
+  roles potenciales se identifican analizando los roles que pertenecen a
+  los trabajadores más similares, pero que el usuario objetivo aún no
+  posee
+\end{itemize}
+
+\textbf{Filtrado de recomendaciones por usuario
+}
+\begin{itemize}
+\tightlist
+\item
+  \textbf{General}: Permite validar si un rol recomendado (sugerido por
+  el modelo de similitud) es pertinente y compatible con el cargo
+  específico del trabajador..
+\item
+  \textbf{Implementación}: Se entrenó un modelo clasificador utilizando
+  el historial de asignaciones de la organización. El objetivo de este
+  modelo es aprender los patrones y reglas de compatibilidad entre los
+  roles existentes y los cargos. Posteriormente, este clasificador se
+  utiliza como un filtro: descarta las recomendaciones de roles que,
+  aunque provengan de usuarios similares, no son compatibles con el
+  cargo del usuario objetivo.
+\end{itemize}
+
+\textbf{Interfaz de Usuario (Implementación Detallada):}
+
+La interfaz gráfica fue desarrollada como una aplicación web moderna con las siguientes características técnicas y funcionales:
+
+\begin{itemize}
+\item
+  \textbf{Página de Bienvenida (WelcomePage):} Componente inicial que presenta el sistema 
+  al usuario. Incluye una breve descripción de las funcionalidades y un botón de acceso 
+  directo al dashboard principal. El diseño es limpio y minimalista, con animaciones sutiles 
+  para mejorar la experiencia de usuario.
+
+\item
+  \textbf{Dashboard de Análisis (AnalysisPage):} Componente central que muestra una vista 
+  general de todos los análisis realizados. Implementa:
+  \begin{itemize}
+  \item Tarjetas de análisis con información resumida (nombre, fecha de creación, estado)
+  \item Botón flotante para crear nuevos análisis
+  \item Sistema de navegación hacia análisis específicos
+  \item Indicadores visuales de estado (pendiente, procesando, completado)
+  \item Integración con la API para cargar análisis de manera asíncrona
+  \end{itemize}
+
+\item
+  \textbf{Formulario de Nuevo Análisis (NewAnalysisPage):} Componente que facilita la 
+  creación de análisis mediante:
+  \begin{itemize}
+  \item Campo de texto para nombre del análisis con validación
+  \item Tres zonas de carga de archivos drag-and-drop para los archivos CSV requeridos 
+        (usuarios, roles, transacciones)
+  \item Validación de formato de archivos en el cliente
+  \item Feedback visual del estado de carga de cada archivo
+  \item Botón de envío con estados de carga y deshabilitado durante el procesamiento
+  \item Manejo de errores con mensajes claros para el usuario
+  \end{itemize}
+
+\item
+  \textbf{Visualizador de Resultados (AnalysisDetailPage):} Componente más complejo que 
+  permite la visualización y evaluación de recomendaciones. Características principales:
+  \begin{itemize}
+  \item Tabla interactiva con las recomendaciones generadas
+  \item Columnas que muestran: ID de usuario, nombre, cargo, rol recomendado, nivel de 
+        confianza
+  \item Sistema de filtrado y búsqueda para localizar recomendaciones específicas
+  \item Botones de acción para evaluar cada recomendación (útil/no útil)
+  \item Función de descarga de resultados en formato Excel
+  \item Indicadores de progreso durante la carga de datos
+  \item Manejo de estados vacíos cuando no hay recomendaciones disponibles
+  \end{itemize}
+
+\item
+  \textbf{Componentes Reutilizables:}
+  \begin{itemize}
+  \item \textit{FileUpload:} Componente de carga de archivos con drag-and-drop, validación 
+        de tipos de archivo y preview del nombre del archivo seleccionado
+  \item \textit{AnalysisCard:} Tarjeta de resumen de análisis con información clave y 
+        navegación integrada
+  \item \textit{LoadingSpinner:} Indicador de carga consistente usado en toda la aplicación
+  \item \textit{ErrorMessage:} Componente para mostrar mensajes de error de manera uniforme
+  \end{itemize}
+
+\item
+  \textbf{Servicios de API (api.js):} Módulo centralizado que encapsula todas las llamadas 
+  al backend, incluyendo:
+  \begin{itemize}
+  \item \texttt{fetchAnalyses()}: Obtiene la lista de todos los análisis
+  \item \texttt{createAnalysis(formData)}: Envía archivos y crea un nuevo análisis
+  \item \texttt{getAnalysisDetail(id)}: Recupera los detalles y recomendaciones de un análisis
+  \item \texttt{downloadResults(id)}: Descarga el archivo Excel con resultados
+  \item \texttt{submitFeedback(analysisId, recommendationId, feedback)}: Envía evaluaciones 
+        de recomendaciones
+  \item Configuración base de axios con URL del backend y manejo de errores
+  \end{itemize}
+
+\item
+  \textbf{Sistema de Estilos:} Implementado mediante archivos CSS modulares:
+  \begin{itemize}
+  \item Variables CSS globales para colores, tipografía y espaciados consistentes
+  \item Diseño responsive que se adapta a diferentes tamaños de pantalla
+  \item Animaciones y transiciones suaves para mejorar la experiencia de usuario
+  \item Sistema de grid y flexbox para layouts flexibles
+  \item Estilos específicos por componente que evitan conflictos de nombres
+  \end{itemize}
+\end{itemize}
+
+\hypertarget{descripciuxf3n-de-componentes}{%
+\subsubsection{Interfaces Implementadas en el Prototipo
+}\label{descripciuxf3n-de-componentes}}
+\hypertarget{verificaciuxf3n-y-validaciuxf3n}{%
+
+Las siguientes figuras muestran la implementación final de la interfaz de usuario, detalladas en el diseño de cada una.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figuras/imp-login.jpg}
+    \caption{Login del sistema.}
+    \label{fig:result-popad-gui}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figuras/imp-home.jpg}
+    \caption{Página home.}
+    \label{fig:home-gui}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figuras/imp-new-analysis.jpg}
+    \caption{Página para crear un nuevo análisis.}
+    \label{fig:create-analysis-gui}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{figuras/imp-detalle.jpg}
+    \caption{Página para editar análisis.}
+    \label{fig:analysis-edit-gui}
+\end{figure}
+
+
+
+\subsection{Verificación y
+Validación}\label{verificaciuxf3n-y-validaciuxf3n}}
+
+En el desarrollo de un sistema en el cual se busca realizar
+recomendaciones que resulten de utilidad, es fundamental garantizar la
+calidad de estas.
+
+\hypertarget{verificaciuxf3n}{%
+\subsubsection{Verificación}\label{verificaciuxf3n}}
+
+La verificación realizada sobre el sistema se centró principalmente en
+comprobar que no se perdiera ni se modificara información relevante de
+los trabajadores durante el proceso de codificación.
+
+Para lograrlo, se revisaron exhaustivamente los datos después de cada
+proceso realizado para la codificación de estos. En la primera
+iteración, se buscó principalmente que se integraran correctamente los
+distintos archivos que contenían la información de los trabajadores y de
+los roles que estos tenían asignados. Posteriormente, se realizó una
+segunda iteración, en la que se realizó un cambio de formato sobre la
+información obtenida.
+
+Los resultados mostraron que, en la primera iteración, se guardaban de
+manera correcta los múltiples roles que tenían los trabajadores. En la
+segunda, se detectaron algunos casos atípicos en los que ciertos roles
+no tenían especificado un lugar de aplicación. Por ello, se consultó al
+equipo de gestión de accesos y se llegó a la decisión de que estos no
+eran relevantes, por lo que no formarán parte de nuestro análisis.
+
+
+\hypertarget{validaciuxf3n}{%
+\subsubsection{Validación}\label{validaciuxf3n}}
+
+La fase de validación se centró en confirmar que el sistema desarrollado
+generara roles que efectivamente el trabajador necesitaba.
+
+A continuación, se presentan los puntos relevantes que se abordaron en
+el proceso de validación, mencionando los metodos realizados, resultados
+obtenidos y la eleccion de cual queda implementado en el prototitpo
+final:
+
+\hypertarget{similitud-entre-trabajadores}{%
+\paragraph{Similitud entre
+trabajadores:}\label{similitud-entre-trabajadores}}
+
+Para implementar el cálculo de similitud, primero se realizó una
+reducción de dimensionalidad sobre las variables categóricas de los
+trabajadores aplicando Análisis de Componentes Principales de Kernel
+(Kernel PCA) con el kernel RBF. Para comprobar el correcto
+funcionamiento de este método, se graficaron las 10 funciones con mayor
+cantidad de trabajadores utilizando los primeros dos componentes
+principales generados. En la figura \ref{fig:pca_funciones} se pudo apreciar que, si bien
+algunas funciones (especialmente aquellas con un amplio número de
+trabajadores) se encuentran más dispersas, otras como "ASSISTENTE
+LABORATORIO I" o "LIDER TURNO PRODUCAO" presentan a sus trabajadores
+visiblemente concentrados en zonas específicas. Esto valida que el
+análisis genera un espacio interpretable donde los trabajadores con
+roles similares se agrupan de manera coherente.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figuras/pca_10funciones.png}
+    \caption{Visualización de los dos primeros componentes (Kernel PCA) para las 10 funciones con más trabajadores.}
+    \label{fig:pca_funciones}
+\end{figure}
+Sobre este nuevo espacio de dimensionalidad reducida, se calculó la
+similitud entre los trabajadores utilizando la similitud de coseno. Este
+método determina qué tan similares son dos vectores basándose en el
+ángulo entre ellos, otorgando valores de 0 (totalmente distintos) a 1
+(idénticos).
+
+Las pruebas se centraron en determinar el umbral de similitud a partir
+del cual dos usuarios se consideran "similares". Para esta validación,
+se utilizaron las asignaciones reales realizadas por el equipo de
+Gestión de Acceso con posterioridad a la fecha en que se recibieron los
+datos iniciales.
+
+Los resultados (ver Tabla~\ref{tab:sim_thresholds}) comparan la cantidad de asignaciones
+cubiertas (roles reales que el sistema sugirió) frente al total de roles
+potenciales generados. Se apreció que, a medida que se reduce el umbral
+de similitud, el volumen de permisos potenciales incrementa
+drásticamente, mientras que la mejora en el porcentaje de roles
+asignados encontrados es menos significativa.
+
+\begin{table}[h!]
+    \centering
+    \caption{Resultados de la calibración del umbral de similitud.}
+    \label{tab:sim_thresholds}
+    \begin{tabular}{@{}crr@{}}
+        \toprule
+        Similarity threshold & Recall & Potenciales roles generados \\
+        \midrule
+        0.5 & 79.51 & 125336 \\
+        0.6 & 77.90 & 106715 \\
+        0.7 & 73.85 & 88421 \\
+        0.8 & 71.16 & 66332 \\
+        0.9 & 59.03 & 42147 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Dado que el objetivo es ofrecer al equipo de Gestión de Acceso un
+conjunto de alternativas manejable y relevante, se buscó un balance
+entre un bajo volumen de sugerencias y una alta cobertura de
+asignaciones correctas. Por esta razón, se estableció como punto óptimo
+una similitud mayor a 0.8. Umbrales más altos, si bien reducían las
+sugerencias, disminuían drásticamente la eficiencia y la cobertura de
+asignaciones válidas.
+
+\hypertarget{clasificador-de-roles-por-cargo}{%
+\paragraph{Clasificador de roles por
+cargo:}\label{clasificador-de-roles-por-cargo}}
+
+Para implementar este clasificador, se evaluaron CatBoost y LightGBM,
+dado que ambas implementaciones ofrecen soporte nativo para el manejo de
+variables categóricas.
+
+El conjunto de datos para el entrenamiento se construyó de la siguiente
+manera:
+
+\begin{itemize}
+\item
+  Casos Positivos (Clase 1): Se utilizaron los roles que los
+  trabajadores ya tenían asignados.
+\item
+  Casos Negativos (Clase 0): Para cada trabajador, se generaron
+  asignaciones de roles que este no poseía (muestreo negativo). Se
+  utilizó un ratio de 3:1 (tres negativos por cada positivo) para
+  balancear el conjunto.
+\end{itemize}
+
+Las métricas utilizadas para comparar el rendimiento de los modelos
+fueron Precisión, Recall, ROC AUC y PR AUC. Los resultados del
+entrenamiento de ambos clasificadores se pueden ver en la Tabla~\ref{tab:clf_metrics}.
+
+\begin{table}[h!]
+    \centering
+    \caption{Métricas de rendimiento de los clasificadores (Conjunto de Test).}
+    \label{tab:clf_metrics}
+    \begin{tabular}{@{}lrrrr@{}}
+        \toprule
+        model & test\_precision & test\_recall & test\_roc\_auc & test\_pr\_auc \\
+        \midrule
+        LightGBM & 0.8327 & 0.7715 & 0.9584 & 0.8940 \\
+        CatBoost & 0.8783 & 0.8542 & 0.9724 & 0.9308 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Adicionalmente, se evaluó el impacto de ambos clasificadores como un
+filtro sobre los roles potenciales generados por el modelo de similitud
+(utilizando la base generada con el umbral de 0.8). El objetivo era
+calibrar el umbral de confianza (score) óptimo del clasificador. Para
+ello, se midió cómo variaba el recall (sobre asignaciones reales) y el
+volumen de recomendaciones al aplicar distintos niveles de confianza.
+Los resultados de CatBoost se ven en la Tabla~\ref{tab:catboost_filter}
+y los de LightGBM en la Tabla~\ref{tab:lightgbm_filter}.
+
+% Catboost data:
+\begin{table}[h!]
+    \centering
+    \caption{Resultados del filtro (CatBoost).}
+    \label{tab:catboost_filter}
+    \begin{tabular}{@{}crr@{}}
+        \toprule
+        Confidence & Recall & Recomendaciones \\
+        \midrule
+        Sin filtro & 71.16 & 66332 \\
+        0.5 & 41.16 & 10351 \\
+        0.6 & 38.07 & 8469 \\
+        0.7 & 32.47 & 6759 \\
+        0.8 & 27.39 & 4791 \\
+        0.9 & 21.40 & 2387 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+% LightGBM data:
+\begin{table}[h!]
+    \centering
+    \caption{Resultados del filtro (LightGBM).}
+    \label{tab:lightgbm_filter}
+    \begin{tabular}{@{}crr@{}}
+        \toprule
+        Confidence & Recall & Recomendaciones \\
+        \midrule
+        Sin filtro & 71.16 & 66332 \\
+        0.5 & 37.03 & 10354 \\
+        0.6 & 31.61 & 7821 \\
+        0.7 & 25.43 & 5754 \\
+        0.8 & 20.37 & 3850 \\
+        0.9 & 19.63 & 1929 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+A partir de las métricas de entrenamiento (ver Tabla~\ref{tab:clf_metrics}), 
+se puede apreciar que CatBoost presenta un desempeño superior en todos 
+los indicadores estudiados (Precisión, Recall, ROC AUC y PR AUC).
+
+En la validación de los clasificadores como filtro 
+(ver Tablas ~\ref{tab:catboost_filter} y ~\ref{tab:lightgbm_filter}), se observa que ambos métodos son 
+efectivos para reducir drásticamente el volumen de recomendaciones. 
+Por ejemplo, al aplicar un umbral de 0.5, la cantidad de sugerencias 
+disminuye en más de un 84\% (de ~66k a ~10k). Esta reducción de 
+"ruido" se produce a costa de una caída significativa en el recall, 
+que para CatBoost desciende un 30\% (de 71.16\% a 41.16\%).
+
+Al comparar el desempeño de ambos modelos en el filtrado, CatBoost
+nuevamente ofrece mejores resultados, logrando un recall más alto en
+cada nivel de confianza. Por lo tanto, este es el clasificador que se
+implementará en el prototipo final.
+
+Finalmente, se definió la estrategia de implementación: se utilizará un
+umbral de confianza bajo (ej. 0.5) en la versión inicial. El objetivo es
+presentar un volumen mayor de recomendaciones al equipo de Gestión de
+Acceso para recopilar su feedback. Este umbral se irá incrementando a
+medida que el modelo se refine con la retroalimentación de los usuarios.
+
+\hypertarget{plan-de-testing}{%
+\subsubsection{Plan de Testing}\label{plan-de-testing}}
+
+El plan de testing se centra en los siguientes puntos:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Pruebas internas}: En una primera etapa, se realizaron pruebas
+  utilizando asignaciones realizadas por el propio equipo de gestión de
+  accesos. Estas pruebas permitieron validar la metodología planteada
+  para la resolución de la problemática. Los resultados detallados de
+  esta validación, incluyendo la selección del clasificador y la
+  calibración de umbrales, se pueden consultar en el apartado anterior.
+\item
+  \textbf{Pruebas con el equipo de gestión de accesos}: Con los métodos
+  implementados, se desplegará una versión inicial para el equipo de
+  Gestión de Accesos. Se les solicitará que evalúen activamente las
+  recomendaciones generadas. Su retroalimentación será fundamental para
+  el ajuste iterativo y la mejora continua del sistema.
+\end{itemize}
+
+\hypertarget{anuxe1lisis-critico-y-evaluaciuxf3n-de-riesgos}{%
+\subsubsection{Análisis Critico y evaluación de
+riesgos}\label{anuxe1lisis-critico-y-evaluaciuxf3n-de-riesgos}}
+
+En esta sección se detallan algunos de los riesgos críticos
+identificados y las medidas implementadas para mitigarlos:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Recomendación de roles incorrecta}:
+
+  \begin{itemize}
+  \tightlist
+  \item
+    \textbf{Impacto}: Si el programa genera constantemente
+    recomendaciones incorrectas, puede hacer que el sistema pierda toda
+    su utilidad.
+  \item
+    \textbf{Medidas de mitigación:} Se implementó un sistema de
+    recolección de feedback para que, en estos casos, se pueda reajustar
+    el modelo y mejorar los resultados, o bien descartar el modelo
+    actual y entrenar uno nuevo con los datos recolectados.
+  \end{itemize}
+\end{enumerate}
+
+
+
+\section{Gestión de Riesgos}
+
+\subsection{Supuestos}
+\begin{itemize}
+    \item Se dispone de datos SAP en un período específico con los permisos asignados a los trabajadores.
+    \item Los modelos de machine learning entrenados reflejarán patrones reales y actuales de uso y asignación de roles.
+    \item Los usuarios y administradores estarán capacitados para validar y supervisar las recomendaciones generadas por el sistema y entregar feedback de los resultados.
+    \item Se mantendrá la gobernanza y cumplimiento normativo durante todo el proceso de automatización.
+\end{itemize}
+
+\subsection{Dependencias}
+\begin{itemize}
+    \item Disponibilidad y acceso a datos estructurados de asignación de roles y permisos desde SAP (por ejemplo, tablas AGR\_USERS, AGR\_TCODES).
+    \item Integración con módulos de control de accesos como SAP GRC para la aplicación de recomendaciones.
+    \item Infraestructura tecnológica para ejecutar modelos de machine learning.
+    \item Colaboración entre equipos de seguridad, TI y negocio para definir reglas y validar resultados.
+    \item Herramientas de monitoreo y auditoría para seguimiento continuo del desempeño del sistema.
+\end{itemize}
+
+\subsection{Restricciones}
+\begin{itemize}
+    \item Dependencia de la capacidad de los modelos para generalizar a nuevos usuarios y cambios organizacionales.
+    \item Limitaciones en el volumen y calidad de datos históricos que pueden afectar la precisión del modelo.
+    \item Restricciones de privacidad y seguridad que limitan el acceso y procesamiento de datos sensibles.
+    \item Requerimiento de validación manual en etapas iniciales para evitar asignaciones incorrectas o riesgos de seguridad.
+\end{itemize}
+
+\subsection{Riesgos}
+\begin{itemize}
+    \item \textbf{Datos insuficientes o sesgados}: pueden generar modelos inexactos que produzcan recomendaciones erróneas.
+    \item \textbf{Falsos positivos o negativos}: en la asignación automática de roles, que pueden causar riesgos de seguridad o demoras operativas.
+    \item \textbf{Falta de aceptación por parte de usuarios o administradores}: debido a baja explicabilidad o confianza en el sistema automatizado.
+    \item \textbf{Incumplimiento normativo}: si la automatización no considera adecuadamente políticas internas o regulaciones externas.
+    \item \textbf{Problemas de integración}: técnica que retrasen la implementación o provoquen fallas en la operación continua.
+    \item \textbf{Cambios organizacionales rápidos}: que hagan obsoletos los modelos entrenados y requieran reentrenamiento frecuente.
+\end{itemize}
+
+\section{Despliegue de plataforma}
+
+Para implementar la plataforma de recomendación de roles SAP, se utilizó una arquitectura que separa el frontend y el backend, garantizando un despliegue confiable, escalable y modular. Esta decisión facilita tanto el mantenimiento como la expansión futura del sistema, permitiendo que cada componente evolucione de manera independiente. La plataforma está diseñada para procesar archivos CSV cargados por los usuarios, generar recomendaciones basadas en algoritmos de similitud y entregar resultados en formatos accesibles como Excel.
+\subsection{Frontend}
+
+El frontend de la plataforma está implementado como una aplicación web moderna, desarrollada en React. Este componente permite a los usuarios interactuar con la plataforma a través de una interfaz intuitiva y responsiva. Los usuarios pueden cargar archivos CSV, iniciar análisis y visualizar los resultados de las recomendaciones generadas.
+
+El despliegue del frontend se realiza en un servicio de hosting estático, configurado para manejar los archivos que componen la interfaz de usuario. Este servicio aprovecha una red de entrega de contenido (CDN) para garantizar tiempos de carga rápidos desde distintas ubicaciones geográficas, optimizando así la experiencia del usuario. Además, el flujo de despliegue está automatizado mediante GitHub Actions, lo que asegura que cada cambio en el código fuente se publique automáticamente, manteniendo el frontend siempre actualizado.
+
+
+\subsection{Backend}
+El backend de la plataforma está implementado como una API REST desarrollada en Python utilizando Flask. Este componente es responsable de procesar los archivos subidos por los usuarios, ejecutar los algoritmos de recomendación y generar los resultados. El backend está diseñado para manejar grandes volúmenes de datos y realizar cálculos complejos, como la generación de vectores de similitud y la identificación de roles recomendados.
+
+El despliegue del backend se realiza en un servicio de aplicaciones web que permite ejecutar aplicaciones Python en un entorno escalable. Este servicio está configurado para manejar las necesidades de procesamiento de datos y garantizar alta disponibilidad. Al igual que el frontend, el backend utiliza GitHub Actions para gestionar el flujo de integración y entrega continua (CI/CD), asegurando que cualquier actualización en el código fuente se despliegue automáticamente, reduciendo el tiempo de inactividad y manteniendo la aplicación actualizada.
+
+
+%\section{Conclusión}
+
+%El proyecto desarrollado constituye una herramienta estratégica para el equipo de Gestión de Acceso. Se implementó una aplicación inteligente que, a través del análisis de los permisos existentes, es capaz de detectar a tiempo potenciales roles faltantes en los trabajadores.
+
+%La principal ventaja de este sistema es que permite al equipo de Gestión de Acceso poder anticiparse a las necesidades del personal, asignando accesos antes de que el trabajador se vea en la necesidad de generar una solicitud formal. Esto reducirá los tiempos de espera de parte de los trabajadores y, a la vez, mejorará la productividad del equipo de Gestión de Acceso.
+
+%Es importante mencionar que un pilar fundamental para nuestro programa es la interacción con el usuario, dado que gracias a esta, nuestra solución es capaz de adaptarse a la constante evolución de la empresa.
+
+\section{Conclusión}
+
+El proyecto desarrollado constituye una herramienta estratégica para el equipo de Gestión de Acceso de CMPC. Se implementó una aplicación inteligente que, a través del análisis avanzado de los permisos existentes utilizando técnicas de machine learning, es capaz de detectar oportunamente potenciales roles faltantes en los trabajadores y generar recomendaciones precisas para su asignación.
+\\
+
+La principal ventaja de este sistema es que permite al equipo de Gestión de Acceso anticiparse proactivamente a las necesidades del personal, asignando accesos antes de que el trabajador se vea en la necesidad de generar una solicitud formal. Esta capacidad predictiva no solo reduce significativamente los tiempos de espera de los trabajadores, mejorando su experiencia y productividad, sino que también optimiza la carga operativa del equipo de Gestión de Acceso al disminuir sustancialmente el volumen de solicitudes manuales que deben procesar diariamente.
+\\
+
+Un pilar fundamental para la sostenibilidad y mejora continua de nuestro programa es la interacción activa con el usuario final. El sistema fue diseñado con una arquitectura modular que permite la recolección sistemática de feedback, lo cual resulta crucial para que la solución pueda adaptarse de manera dinámica a la constante evolución de la estructura organizacional, los cambios en las funciones de los cargos y las nuevas políticas de seguridad que puedan implementarse en CMPC. Esta capacidad de aprendizaje continuo garantiza que el sistema no se vuelva obsoleto con el tiempo, sino que por el contrario, se perfeccione progresivamente.
+\\
+
+El desarrollo de la interfaz web intuitiva facilita enormemente la adopción del sistema por parte del equipo de Gestión de Acceso, permitiendo visualizar de manera clara y ordenada las recomendaciones generadas, junto con el contexto necesario para tomar decisiones informadas. La plataforma no solo presenta sugerencias, sino que también proporciona información sobre otros usuarios en situaciones similares, enriqueciendo así el análisis y la toma de decisiones.
+\\
+
+Mirando hacia el futuro, existen múltiples oportunidades de expansión y mejora del sistema. Entre ellas destacan: la incorporación de análisis temporal para detectar patrones estacionales en las solicitudes de acceso, la integración directa con la plataforma SAP para automatizar completamente el proceso de asignación una vez validadas las recomendaciones, y la extensión del modelo para abarcar otras sucursales de CMPC más allá de Brasil. Adicionalmente, se podrían explorar técnicas más avanzadas de deep learning para capturar relaciones más complejas entre roles y permisos, así como implementar sistemas de detección de anomalías para identificar asignaciones potencialmente riesgosas desde el punto de vista de seguridad.
+\\
+
+En conclusión, este proyecto no solo resuelve una problemática operativa concreta en CMPC, sino que sienta las bases para una gestión más inteligente, eficiente y proactiva de los accesos SAP, con potencial de generar valor significativo a largo plazo y ser replicado en otras áreas de la organización que enfrenten desafíos similares de gestión de permisos y accesos.
+\clearpage
+
+\appendix
+
+
+
+\end{document}
