@@ -7,11 +7,28 @@ Matches the reference design: green corporate palette, clean tables, status badg
 def get_custom_css() -> str:
     """Return the full custom CSS as a string."""
     return """
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <style>
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 300, 'OPSZ' 20;
+        font-size: 1.2rem;
+        vertical-align: middle;
+        line-height: 1;
+    }
     /* ── Global ─────────────────────────────────────────────────── */
     .block-container { padding-top: 1.5rem; }
 
     /* ── Sidebar ────────────────────────────────────────────────── */
+    /* Sticky logo at top of sidebar */
+    .sidebar-logo {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: white;
+        text-align: center;
+        padding: 1rem 0 0.75rem 0;
+        margin-bottom: 0.5rem;
+    }
     [data-testid="stSidebar"] {
         background-color: #f9fafb;
         border-right: 1px solid #e5e7eb;
@@ -68,9 +85,40 @@ def get_custom_css() -> str:
         color: #1d4ed8 !important;
         padding: 0 !important;
         text-align: left !important;
+        justify-content: flex-start !important;
+    }
+    [data-testid="baseButton-tertiary"] > div,
+    [data-testid="baseButton-tertiary"] span {
+        text-align: left !important;
+        justify-content: flex-start !important;
     }
     [data-testid="baseButton-tertiary"]:hover {
         color: #1e40af !important;
+    }
+
+    /* ── Table row vertical alignment ───────────────────────────── */
+    /* Shrink icon-only action buttons (folder/download/delete) to match text row height */
+    .main [data-testid="baseButton-secondary"] {
+        padding-top: 0.15rem !important;
+        padding-bottom: 0.15rem !important;
+        min-height: 32px !important;
+        height: 32px !important;
+        line-height: 1 !important;
+    }
+    /* Remove extra vertical gap between table rows */
+    .main [data-testid="stHorizontalBlock"] {
+        gap: 0 !important;
+        align-items: center !important;
+    }
+    .main [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+        padding-top: 4px !important;
+        padding-bottom: 4px !important;
+    }
+    /* Remove bottom margin from <p> inside table cells */
+    .main [data-testid="stHorizontalBlock"] [data-testid="stMarkdownContainer"] p {
+        margin-bottom: 0 !important;
+        margin-top: 0 !important;
+        line-height: 2;
     }
 
     .badge {
@@ -201,6 +249,38 @@ def get_custom_css() -> str:
     /* ── Hide sidebar collapse / expand buttons ─────────────────── */
     [data-testid="stSidebarCollapseButton"] { display: none; }
     [data-testid="stSidebarCollapsedControl"] { display: none; }
+
+    /* ── Detail page colored buttons ───────────────────────────── */
+    /* Eliminar → rojo */
+    div[class*="st-key-detail_delete"] button {
+        background-color: #dc2626 !important;
+        border-color: #dc2626 !important;
+        color: #ffffff !important;
+    }
+    div[class*="st-key-detail_delete"] button:hover {
+        background-color: #b91c1c !important;
+        border-color: #b91c1c !important;
+    }
+    /* Descargar → verde */
+    div[class*="st-key-btn_download_recs"] button {
+        background-color: #16a34a !important;
+        border-color: #16a34a !important;
+        color: #ffffff !important;
+    }
+    div[class*="st-key-btn_download_recs"] button:hover {
+        background-color: #15803d !important;
+        border-color: #15803d !important;
+    }
+    /* Guardar feedback → amarillo */
+    div[class*="st-key-btn_save_feedback"] button {
+        background-color: #ca8a04 !important;
+        border-color: #ca8a04 !important;
+        color: #ffffff !important;
+    }
+    div[class*="st-key-btn_save_feedback"] button:hover {
+        background-color: #a16207 !important;
+        border-color: #a16207 !important;
+    }
 
     /* ── Feedback radio horizontal ──────────────────────────────── */
     .feedback-row {

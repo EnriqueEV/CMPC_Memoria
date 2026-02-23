@@ -4,6 +4,7 @@ Home page – Lists all previous analyses in a searchable, paginated table.
 
 import io
 import math
+import urllib.parse
 
 import pandas as pd
 import streamlit as st
@@ -19,6 +20,9 @@ from main.modulo_recomendacion_roles.data.generate_negative_cases import retrain
 
 
 ROWS_PER_PAGE = 6
+
+_TH = "text-align:left;padding:8px 12px;font-weight:600;color:#374151;"
+_ICON_LINK_STYLE = "font-size:1.1rem;text-decoration:none;color:#6b7280;"
 
 _HELP_TEXT = """
 **¿Cómo funciona el sistema?**
@@ -76,44 +80,67 @@ def render():
     start = (page - 1) * ROWS_PER_PAGE
     page_items = analyses[start : start + ROWS_PER_PAGE]
 
-    # ── Table header ────────────────────────────────────────────
-    hcols = st.columns([3, 2, 2, 2, 1, 1, 1])
-    headers = ["Análisis", "Fecha creación", "Recomendaciones", "Estado", "", "", ""]
-    for col, label in zip(hcols, headers):
-        col.markdown(f"**{label}**")
+    # ── Handle query param actions ───────────────────────────────
+    qp = st.query_params.to_dict()
+    if "open_id" in qp:
+        st.query_params.clear()
+        st.session_state.current_page = "detail"
+        st.session_state.selected_analysis_id = int(qp["open_id"])
+        st.rerun()
+    if "del_id" in qp:
+        st.query_params.clear()
+        delete_analysis(int(qp["del_id"]))
+        st.toast("Análisis eliminado")
+        st.rerun()
 
-    # ── Rows ────────────────────────────────────────────────────
+    # ── Build full HTML table (no Streamlit columns = no row gap) ─
+    _icon = lambda name: f'<span class="material-symbols-outlined">{name}</span>'
+
+    rows_html = ""
     for a in page_items:
         status = a.get("status", "en_proceso")
         status_label = "Completado" if status == "completado" else ("Error" if status == "error" else "En proceso")
         status_color = "#166534" if status == "completado" else ("#dc2626" if status == "error" else "#f59e0b")
-        recs_val = f'{a["total_recommendations"]:,}' if a.get("total_recommendations") else "—"
+        date_val = a["created_at"][:10]
 
-        c1, c2, c3, c4, c5, c6, c7 = st.columns([3, 2, 2, 2, 1, 1, 1])
-        with c1:
-            if st.button(a["name"], key=f"name_{a['id']}", use_container_width=True, type="tertiary"):
-                st.session_state.current_page = "detail"
-                st.session_state.selected_analysis_id = a["id"]
-                st.rerun()
-        c2.markdown(a["created_at"][:10])
-        c3.markdown(recs_val)
-        c4.markdown(
-            f'<span style="background-color:{status_color};color:white;padding:3px 10px;'
-            f'border-radius:6px;font-size:0.8rem;font-weight:600">{status_label}</span>',
-            unsafe_allow_html=True,
-        )
-        with c5:
-            if st.button("", key=f"open_{a['id']}", help="Ver detalle", use_container_width=True, icon=":material/folder_open:"):
-                st.session_state.current_page = "detail"
-                st.session_state.selected_analysis_id = a["id"]
-                st.rerun()
-        with c6:
-            _download_button(a)
-        with c7:
-            if st.button("", key=f"del_{a['id']}", help="Eliminar análisis", use_container_width=True, icon=":material/delete:"):
-                delete_analysis(a["id"])
-                st.toast("Análisis eliminado")
-                st.rerun()
+        # Build CSV data URL for inline download
+        recs_list = get_all_recommendations(a["id"])
+        if recs_list:
+            recs_df = pd.DataFrame(recs_list)
+            csv_bytes = recs_df.to_csv(index=False)
+            csv_url = "data:text/csv;charset=utf-8," + urllib.parse.quote(csv_bytes)
+            dl_cell = (
+                f'<a href="{csv_url}" download="recomendaciones_{a["name"]}.csv" '
+                f'title="Descargar CSV" style="{_ICON_LINK_STYLE}">{_icon("download")}</a>'
+            )
+        else:
+            dl_cell = f'<span style="color:#d1d5db">{_icon("download")}</span>'
+
+        rows_html += f"""
+        <tr style="border-bottom:1px solid #f3f4f6">
+          <td style="padding:10px 12px"><a href="?open_id={a['id']}" target="_self" style="color:#1d4ed8;text-decoration:underline">{a['name']}</a></td>
+          <td style="padding:10px 12px">{date_val}</td>
+          <td style="padding:10px 12px"><span style="background:{status_color};color:white;padding:2px 10px;border-radius:6px;font-size:0.8rem;font-weight:600">{status_label}</span></td>
+          <td style="padding:10px 12px;text-align:center">{dl_cell}</td>
+          <td style="padding:10px 12px;text-align:center"><a href="?del_id={a['id']}" target="_self" title="Eliminar análisis" style="{_ICON_LINK_STYLE};color:#dc2626">{_icon("delete")}</a></td>
+        </tr>"""
+
+    table_html = f"""
+    <table style="width:100%;border-collapse:collapse;font-size:0.95rem">
+      <thead>
+        <tr style="border-bottom:2px solid #e5e7eb">
+          <th style="{_TH}width:38%">Análisis</th>
+          <th style="{_TH}width:22%">Fecha creación</th>
+          <th style="{_TH}width:25%">Estado</th>
+          <th style="{_TH}width:7%"></th>
+          <th style="{_TH}width:7%"></th>
+        </tr>
+      </thead>
+      <tbody>{rows_html}
+      </tbody>
+    </table>"""
+
+    st.markdown(table_html, unsafe_allow_html=True)
 
     # ── Pagination controls ─────────────────────────────────────
     st.markdown("")

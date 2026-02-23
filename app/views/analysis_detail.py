@@ -41,19 +41,10 @@ def render():
         "Completado" if status == "completado" else ("Error" if status == "error" else "En proceso"),
         "completado" if status == "completado" else ("error" if status == "error" else "en_proceso"),
     )
-    _title_col, _del_col = st.columns([5, 1])
-    with _title_col:
-        st.markdown(
+    st.markdown(
             f"## Revisión de análisis: {analysis['name']} {status_badge}",
             unsafe_allow_html=True,
         )
-    with _del_col:
-        if st.button("Eliminar", type="secondary", key="detail_delete", use_container_width=True, icon=":material/delete:"):
-            delete_analysis(analysis_id)
-            st.session_state.current_page = "home"
-            st.session_state.selected_analysis_id = None
-            st.toast("Análisis eliminado")
-            st.rerun()
 
     if status != "completado":
         st.info("Este análisis aún no ha terminado o tuvo un error.")
@@ -94,17 +85,6 @@ def _render_metrics(analysis: dict):
             metric_card(f"{total_users:,}", "Usuarios analizados"),
             unsafe_allow_html=True,
         )
-
-    # Config summary
-    with st.expander("📋 Configuración del análisis"):
-        cfg_cols = st.columns(4)
-        cfg_cols[0].metric("Umbral similitud", analysis.get("similarity_threshold", "—"))
-        cfg_cols[1].metric("Umbral clasificador", analysis.get("classifier_threshold", "—"))
-        cfg_cols[2].metric("Modelo", analysis.get("model_used", "—"))
-        cfg_cols[3].metric("Resumen", analysis.get("resumen_file", "—"))
-
-        if analysis.get("user_filter"):
-            st.caption(f"Filtro de usuarios: {analysis['user_filter']}")
 
 
 # =====================================================================
@@ -217,6 +197,7 @@ def _render_recommendations_section(analysis_id: int):
     # ── Feedback progress bar ───
     total_recs = len(all_recs)
     evaluated = len(existing_fb)
+    auto_si = sum(1 for f in existing_fb if f["is_useful"])
     pct = evaluated / total_recs if total_recs > 0 else 0
     prog_col, pct_col = st.columns([5, 1])
     with prog_col:
@@ -225,6 +206,11 @@ def _render_recommendations_section(analysis_id: int):
         st.markdown(
             f"<p style='text-align:center;font-size:1.5rem;font-weight:700;margin-top:0.3rem'>{pct*100:.0f}%</p>",
             unsafe_allow_html=True,
+        )
+    if auto_si > 0:
+        st.caption(
+            f"✅ {auto_si} recomendación{'es' if auto_si != 1 else ''} validada{'s' if auto_si != 1 else ''} "
+            f"automáticamente contra el resumen ({auto_si}/{total_recs})"
         )
 
     # Group by user
@@ -256,6 +242,19 @@ def _render_recommendations_section(analysis_id: int):
 
     st.caption(f"{total_users_with_recs} usuario(s) con recomendaciones")
 
+    # ── Expand / Collapse all ───────────────────────────────────
+    if "recs_expand_all" not in st.session_state:
+        st.session_state.recs_expand_all = False
+    _exp_col, _col_col, _ = st.columns([1, 1, 4])
+    with _exp_col:
+        if st.button("⊕ Expandir todo", key="btn_expand_all", use_container_width=True):
+            st.session_state.recs_expand_all = True
+            st.rerun()
+    with _col_col:
+        if st.button("⊖ Colapsar todo", key="btn_collapse_all", use_container_width=True):
+            st.session_state.recs_expand_all = False
+            st.rerun()
+
     # Collect all feedback inputs for saving
     feedback_inputs = {}
 
@@ -266,7 +265,7 @@ def _render_recommendations_section(analysis_id: int):
         func = recs[0].get("funcion", "")
         label = f"👤 **{user}**  —  {func} · {dept}  ({n_recs} rol{'es' if n_recs != 1 else ''})"
 
-        with st.expander(label, expanded=False):
+        with st.expander(label, expanded=st.session_state.get("recs_expand_all", False)):
             for rec in recs:
                 rec_id = rec["id"]
                 confidence = rec.get("confidence")
@@ -330,19 +329,34 @@ def _render_recommendations_section(analysis_id: int):
 
     # ── Action buttons ──────────────────────────────────────────
     st.markdown("---")
-    btn_col1, btn_col2 = st.columns(2)
+    btn_col1, btn_col2, btn_col3 = st.columns(3)
 
     with btn_col1:
-        _render_download_button(analysis_id)
-
-    with btn_col2:
         if st.button(
             "Guardar feedback",
             type="primary",
             use_container_width=True,
             icon=":material/save:",
+            key="btn_save_feedback",
         ):
             _save_feedback(analysis_id, feedback_inputs)
+
+    with btn_col2:
+        if st.button(
+            "Eliminar análisis",
+            type="secondary",
+            use_container_width=True,
+            icon=":material/delete:",
+            key="detail_delete",
+        ):
+            delete_analysis(analysis_id)
+            st.session_state.current_page = "home"
+            st.session_state.selected_analysis_id = None
+            st.toast("Análisis eliminado")
+            st.rerun()
+
+    with btn_col3:
+        _render_download_button(analysis_id)
 
 
 # ── Action helpers ──────────────────────────────────────────────
@@ -382,6 +396,7 @@ def _render_download_button(analysis_id: int):
         file_name=filename,
         mime="text/csv",
         use_container_width=True,
+        key="btn_download_recs",
     )
 
 

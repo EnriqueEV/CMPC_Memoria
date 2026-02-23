@@ -49,7 +49,13 @@ if "selected_analysis_id" not in st.session_state:
 # Sidebar
 # ════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.image("img/LogoCMPC-1.png", width=100)
+    with open("img/LogoCMPC-1.png", "rb") as _f:
+        import base64
+        _logo_b64 = base64.b64encode(_f.read()).decode()
+    st.markdown(
+        f'<div class="sidebar-logo"><img src="data:image/png;base64,{_logo_b64}" width="120"></div>',
+        unsafe_allow_html=True,
+    )
 
     if st.button("Inicio", use_container_width=True, key="sidebar_home", type="primary", icon=":material/home:"):
         st.session_state.current_page = "home"
