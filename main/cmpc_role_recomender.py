@@ -11,7 +11,7 @@ mkdir.mkdir(parents=True, exist_ok=True)
 
 
 class CmpcRoleRecommender:
-    def __init__(self, similarity_metric, resumen_data_path, n_top = 10, data_folder = "data", threshold=0.7, data_type = ".csv"):
+    def __init__(self, similarity_metric, resumen_data_path, n_top = 10, data_folder = "data", threshold=0.7, data_type = ".csv", date_filter: str = None):
         self.similarity_calculator = SimilarityCalculator(similarity_metric, n_top, data_folder, threshold, data_type)
 
         self.resumen_data = pd.read_csv(resumen_data_path)
@@ -19,13 +19,22 @@ class CmpcRoleRecommender:
         self.predictions_df = None
         self.recommendations = None
 
+        # Compute default date_filter as midpoint of resumen if not provided
+        if date_filter is None:
+            if 'Fecha' in self.resumen_data.columns:
+                dates = pd.to_datetime(self.resumen_data['Fecha'], errors='coerce').dropna()
+                if not dates.empty:
+                    midpoint = dates.min() + (dates.max() - dates.min()) / 2
+                    date_filter = midpoint.strftime('%Y-%m-%d')
+        self.date_filter = date_filter
+
     def run_recommendations(self):
         self.recommendations = self.similarity_calculator.run_recommendation(n_component=10, pca_kernel='rbf', pca_gamma='scale')
         return self.recommendations
     
 
     def validate_results(self):
-        validator = ValidationCalculator(self.recommendations, self.split_roles, self.resumen_data,date_filter = "2025-06-07")
+        validator = ValidationCalculator(self.recommendations, self.split_roles, self.resumen_data, date_filter=self.date_filter)
         results = validator.compute_validation()
         #validator.print_summary()
         return results
@@ -41,7 +50,7 @@ class CmpcRoleRecommender:
 
 
     def validate_classification_results(self):
-        validator = ValidationCalculator(self.predictions_df, self.split_roles, self.resumen_data,date_filter = "2025-06-07")
+        validator = ValidationCalculator(self.predictions_df, self.split_roles, self.resumen_data, date_filter=self.date_filter)
         results = validator.compute_validation()
         #validator.print_summary()
         return results

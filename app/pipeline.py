@@ -74,6 +74,7 @@ def run_analysis(
     classifier_threshold: float = 0.5,
     model_name: str = "CatBoost",
     user_filter: Optional[List[str]] = None,
+    date_filter: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Execute the full recommendation pipeline.
@@ -107,6 +108,7 @@ def run_analysis(
         data_folder=data_folder,
         threshold=similarity_threshold,
         data_type=data_type,
+        date_filter=date_filter,
     )
 
     recommender.run_recommendations()

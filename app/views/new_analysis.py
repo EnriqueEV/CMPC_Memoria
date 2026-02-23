@@ -5,6 +5,7 @@ New Analysis page – Auto-detect existing data, configure parameters, launch pi
 import streamlit as st
 import pandas as pd
 from pathlib import Path
+from datetime import date, timedelta
 
 from app.pipeline import (
     MODELS,
@@ -134,6 +135,46 @@ def render():
         help="Archivo resumen_*.csv con las asignaciones reales de roles para validación",
     )
 
+    # ── 3. Fecha de corte para validación ───────────────────────
+    st.markdown(
+        '<p class="section-title">Fecha de corte para validación</p>',
+        unsafe_allow_html=True,
+    )
+
+    _date_min = None
+    _date_max = None
+    _date_default = None
+
+    if resumen_uploaded is not None:
+        try:
+            _preview = pd.read_csv(resumen_uploaded) if resumen_uploaded.name.endswith(".csv") else pd.read_excel(resumen_uploaded)
+            resumen_uploaded.seek(0)  # reset after read
+            if "Fecha" in _preview.columns:
+                _dates = pd.to_datetime(_preview["Fecha"], errors="coerce").dropna()
+                if not _dates.empty:
+                    _date_min = _dates.min().date()
+                    _date_max = _dates.max().date()
+                    _date_default = _date_min + (_date_max - _date_min) // 2
+                    st.caption(
+                        f"El archivo cubre desde **{_date_min}** hasta **{_date_max}**. "
+                        "El sistema validará las recomendaciones comparándolas con las asignaciones realizadas después de la fecha elegida."
+                    )
+        except Exception:
+            pass
+
+    if _date_default is None:
+        _date_default = date(2025, 6, 1)
+
+    cutoff_date = st.date_input(
+        "Fecha de corte",
+        value=_date_default,
+        min_value=_date_min,
+        max_value=_date_max,
+        label_visibility="collapsed",
+        help="Solo las asignaciones posteriores a esta fecha se consideran 'futuras' para validar el sistema.",
+    )
+    date_filter = cutoff_date.strftime("%Y-%m-%d")
+
     # ── 4. Optional user filter ─────────────────────────────────
     st.markdown(
         '<p class="section-title">Filtro por usuario (opcional)</p>',
@@ -184,6 +225,7 @@ def render():
             clf_threshold=CLF_THRESHOLD,
             model_name=MODEL_NAME,
             user_filter=user_filter,
+            date_filter=date_filter,
         )
 
 
@@ -220,6 +262,7 @@ def _execute_analysis(
     clf_threshold,
     model_name,
     user_filter,
+    date_filter: str = None,
 ):
     """Run the pipeline with progress feedback using existing data/ files."""
 
@@ -251,6 +294,7 @@ def _execute_analysis(
             classifier_threshold=clf_threshold,
             model_name=model_name,
             user_filter=user_filter,
+            date_filter=date_filter,
         )
         progress.progress(70, text="Guardando resultados…")
 
