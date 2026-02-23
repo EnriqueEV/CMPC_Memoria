@@ -27,3 +27,7 @@ env/
 # Misc
 AVANC.md
 /main/test.py
+
+# Ignore CatBoost-generated files
+catboost_info/
+models/modulo_recomendacion_roles/*.joblib
